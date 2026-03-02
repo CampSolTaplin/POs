@@ -33,17 +33,24 @@
   .status-badge{display:inline-block;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700}
   .filter-btn{padding:5px 11px;font-size:10.5px;border-radius:4px;background:transparent;color:#6b7280;border:1px solid transparent;font-family:inherit}
   .filter-btn.active{background:#1f2937;color:#e5e7eb;border-color:#374151}
-  select,input[type=text]{font-family:inherit;width:100%;padding:4px 5px;font-size:10px;border-radius:4px;background:#0c111b;border:1px solid #374151;color:#e5e7eb}
+  input[type=text]{font-family:inherit;width:100%;padding:4px 5px;font-size:10px;border-radius:4px;background:#0c111b;border:1px solid #374151;color:#e5e7eb}
   textarea{font-family:'JetBrains Mono',monospace;width:100%;padding:12px;font-size:11px;background:#0c111b;border:1px solid #1f2937;border-radius:8px;color:#d1d5db;resize:vertical;line-height:1.6}
   details summary{cursor:pointer;font-size:11.5px;font-weight:600;color:#9ca3af;padding:5px 0}
+  .po-search-wrap{position:relative}
+  .po-search-input{font-family:inherit;width:100%;padding:4px 5px;font-size:10px;border-radius:4px;background:#0c111b;border:1px solid #374151;color:#e5e7eb}
+  .po-search-input:focus{border-color:#3b82f6;outline:none}
+  .po-dropdown{position:absolute;top:100%;left:0;right:0;background:#1a2332;border:1px solid #374151;border-radius:4px;max-height:200px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .po-option{padding:5px 8px;cursor:pointer;font-size:10px;border-bottom:1px solid #0c111b;display:flex;gap:6px;align-items:center}
+  .po-option:hover{background:#2d3a4f}
+  .po-option.selected{background:#1e3a5f}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState, useCallback, useRef, useMemo} = React;
+const {useState, useCallback, useRef, useMemo, useEffect} = React;
 
-/* ─── TEXT SIMILARITY: fuzzy matching between vendor and PO description ─── */
+/* ─── TEXT SIMILARITY ─── */
 const NOISE = new Set(['the','and','a','an','of','in','at','to','for','on','by','with','from','or','is','it','its',
   'http','https','www','com','fl','ca','ny','ma','wa','ct','tx','nj','mn','co','il','pa',
   'amzn','bill','pay','helppay','no','rec','norec','nan','undefined','null',
@@ -54,20 +61,14 @@ function tokenize(s){
     .filter(w=>w.length>1&&!NOISE.has(w.toLowerCase())&&!/^\d{1,3}$/.test(w));
 }
 
-/* Substring match: does any token from A appear as substring in B or vice versa? */
 function textSimilarity(stmtVendor, poDesc){
   const tA=tokenize(stmtVendor), tB=tokenize(poDesc);
   if(!tA.length||!tB.length)return 0;
   let hits=0;
   for(const a of tA){
     for(const b of tB){
-      // exact token match
       if(a===b){hits+=2;continue;}
-      // one contains the other (min 3 chars to avoid noise)
-      if(a.length>=3&&b.length>=3){
-        if(a.includes(b)||b.includes(a)){hits+=1.5;continue;}
-      }
-      // first 4+ chars match (handles plurals, abbreviations)
+      if(a.length>=3&&b.length>=3){if(a.includes(b)||b.includes(a)){hits+=1.5;continue;}}
       if(a.length>=4&&b.length>=4&&a.slice(0,4)===b.slice(0,4)){hits+=1;}
     }
   }
@@ -75,27 +76,24 @@ function textSimilarity(stmtVendor, poDesc){
   return maxPossible>0?hits/maxPossible:0;
 }
 
-/* Check if vendor is a known "Amex Marleny" or similar payment card entry */
 function isCardEntry(vendor){
   const u=(vendor||'').toUpperCase();
-  return u.includes('AMEX')&&u.includes('MARLEN') || u.includes('MARLENY AMEX') ||
-    u.includes('AMEX MARLENY') || u.includes('MARLENY AMEA') || /^AMEX\s/i.test(u);
+  return (u.includes('AMEX')&&u.includes('MARLEN')) || u.includes('MARLENY AMEX') ||
+    u.includes('AMEX MARLENY') || u.includes('MARLENY AMEA') || /^AMEX\s/i.test(u) ||
+    u.includes('MARLENY VISA') || u.includes('VISA MARLENY');
 }
 
+/* ─── ONLY truly unique, unambiguous vendor rules ─── */
 const GL_RULES = [
-  {p:['HEROKU','CONSTANT-CONTACT','CCI*CONSTANT','GOOGLE *GOOGLE ONE','AWS','AMAZON WEB','VERCEL','PADDLE','N8N','CLAUDE.AI','ANTHROPIC','OPENAI','CHATGPT','PRIME VIDEO','KINDLE'],po:'50-31',n:'Application/Tech'},
+  {p:['HEROKU'],po:'50-31',n:'Application'},
+  {p:['CCI*CONSTANT','CONSTANT-CONTACT','CONSTANTCONTACT'],po:'50-31',n:'Application'},
+  {p:['GOOGLE *GOOGLE ONE'],po:'50-31',n:'Application'},
+  {p:['AMAZON WEB SERVICES','AWS.AMAZON'],po:'50-31',n:'Application'},
   {p:['AEROMEXICO'],po:'50-09',n:'NOAR Mexico'},
   {p:['JETBLUE'],po:'50-28',n:'Costa Rica'},
   {p:['EL AL'],po:'50-16',n:'SOM Conference'},
-  {p:['COPA'],po:'50-10',n:'NOAR Panama'},
+  {p:['COPA AIRLINES','COPA AIR'],po:'50-10',n:'NOAR Panama'},
   {p:['AMERICAN AIRLINES'],po:'50-12',n:'Pre-SOM Conference'},
-  {p:['TRAVEL AGENCY'],po:'50-09',n:'NOAR Mexico'},
-  {p:['PANAMA','NACIONSUSHI','YOSS BURGER','COFFEE BEAN Y TE','FARMACIA ARROCHA','LARGE SCREEN CINEMA','SHAKIS','PITA PAN'],po:'50-10',n:'NOAR Panama'},
-  {p:['PUBLIX','KOSHER KINGDOM',"DANO'S",'DANOS CAFE',"ELSIE'S",'ELSIES CAFE','JCAFE','J CAFE','FREDDO','KRISPY','POKE','PICCOLA','NEWSCONNECTION','SEED TO TABLE','WAWA'],po:'50-22',n:'Events'},
-  {p:['PREFERRED PARTY','BLAST PARTY','TODD LYNN','TERRYSFACEP','VA BOONE'],po:'50-34',n:'Challah Bake'},
-  {p:['WIX','CALANIT'],po:'50-01',n:'Service providers'},
-  {p:['SUNPASS','MIA PARKING','PARKING'],po:'50-22',n:'Events'},
-  {p:['TARGET','GREENWAY LIQUORS'],po:'50-30',n:'Conferences'},
   {p:['CAUSEMATCH'],po:'50-31',n:'Application'},
 ];
 
@@ -162,6 +160,63 @@ const SC={
   unmatched:{bg:'#fee2e2',c:'#991b1b',l:'NEEDS PO'},
 };
 
+/* ─── Searchable PO Dropdown ─── */
+function POSelect({value, glRef, onChange}){
+  const[open,setOpen]=useState(false);
+  const[q,setQ]=useState('');
+  const wrapRef=useRef(null);
+
+  useEffect(()=>{
+    const handler=e=>{if(wrapRef.current&&!wrapRef.current.contains(e.target))setOpen(false)};
+    document.addEventListener('mousedown',handler);
+    return()=>document.removeEventListener('mousedown',handler);
+  },[]);
+
+  const filtered=useMemo(()=>{
+    if(!q.trim())return glRef;
+    const s=q.toLowerCase();
+    return glRef.filter(g=>
+      g.po.toLowerCase().includes(s)||
+      g.desc.toLowerCase().includes(s)||
+      g.prog.toLowerCase().includes(s)||
+      g.gl.toLowerCase().includes(s)
+    );
+  },[q,glRef]);
+
+  const selected=glRef.find(g=>g.po===value);
+  const displayText=selected?selected.po+' · '+selected.desc:'';
+
+  return(
+    <div className="po-search-wrap" ref={wrapRef}>
+      <input
+        className="po-search-input"
+        placeholder="Search PO..."
+        value={open?q:displayText}
+        onFocus={()=>{setOpen(true);setQ('');}}
+        onChange={e=>setQ(e.target.value)}
+      />
+      {open&&<div className="po-dropdown">
+        <div style={{padding:'4px 8px',borderBottom:'1px solid #374151'}}>
+          <input type="text" value={q} onChange={e=>setQ(e.target.value)} placeholder="🔍 Type to filter..." autoFocus
+            style={{width:'100%',padding:'4px 6px',fontSize:10,background:'#0c111b',border:'1px solid #374151',borderRadius:3,color:'#e5e7eb'}}/>
+        </div>
+        {value&&<div className="po-option" style={{color:'#f87171',fontSize:9}} onClick={()=>{onChange('');setOpen(false);setQ('');}}>
+          ✕ Clear selection
+        </div>}
+        {filtered.length===0&&<div style={{padding:8,fontSize:10,color:'#6b7280',textAlign:'center'}}>No matches</div>}
+        {filtered.map(g=>(
+          <div key={g.po} className={'po-option'+(g.po===value?' selected':'')}
+            onClick={()=>{onChange(g.po);setOpen(false);setQ('');}}>
+            <span className="mono" style={{color:'#60a5fa',fontWeight:600,minWidth:38,fontSize:10}}>{g.po}</span>
+            <span style={{color:'#d1d5db',flex:1,fontSize:10}}>{g.desc}</span>
+            <span style={{color:'#a78bfa',fontSize:9,fontWeight:600}}>{g.prog}</span>
+          </div>
+        ))}
+      </div>}
+    </div>
+  );
+}
+
 function UploadBox({label,icon,file,onFile}){
   const ref=useRef(null);
   const[drag,setDrag]=useState(false);
@@ -210,56 +265,33 @@ function App(){
       if(stmt.trim()){
         L.push('📧 Parsing statement...');setLog([...L]);
         const raw=parseStmt(stmt);L.push('  '+raw.length+' transactions');
-        L.push('🔄 Smart matching (amount + text similarity)...');setLog([...L]);
+        L.push('🔄 Smart matching (amount + text)...');setLog([...L]);
 
         const matched=raw.map(t=>{
-          /* ─── IMPROVED MATCHING LOGIC ─── 
-             Step 1: Find PO entries with matching amount (±$0.02)
-             Step 2: Among those, check if vendor is "Amex Marleny" (card holder)
-             Step 3: If card holder, compare STATEMENT vendor text with PO DESCRIPTION text
-             Step 4: Require minimum text similarity score to auto-match
-          */
           const amtMatches=ape.filter(e=>Math.abs(e.amount-t.amount)<0.02);
           let bestMatch=null, bestScore=0;
 
           for(const e of amtMatches){
-            // Only match against entries paid by Marleny's cards
             if(!isCardEntry(e.vendor))continue;
-
-            // Compare statement vendor with PO entry description
-            // e.desc = the DESCRIPTION column in the PO (e.g. "SUNPASS*ACC20759966 888-865-5352 FL")
             const score=textSimilarity(t.vRaw, e.desc);
-
-            if(score>bestScore){
-              bestScore=score;
-              bestMatch=e;
-            }
+            if(score>bestScore){bestScore=score;bestMatch=e;}
           }
 
-          // Threshold: need at least 0.15 similarity to auto-match
-          // This prevents "VA BOONE" matching "Hatzalah - Joseph Dahan" just because amounts match
           const MATCH_THRESHOLD = 0.15;
-
           if(bestMatch && bestScore >= MATCH_THRESHOLD){
             const gref=dgl.find(g=>g.po===bestMatch.po);
-            return{...t,
-              status:'done',
-              po:bestMatch.po,
-              gl:bestMatch.gl,
-              prog:gref?gref.prog:'',
-              poDesc:gref?gref.desc:'',
-              notes:'Auto: '+bestMatch.desc+' (score:'+bestScore.toFixed(2)+', '+bestMatch.src+')'};
+            return{...t,status:'done',po:bestMatch.po,gl:bestMatch.gl,
+              prog:gref?gref.prog:'',poDesc:gref?gref.desc:'',
+              notes:'Auto: '+bestMatch.desc+' ('+bestMatch.src+')'};
           }
 
-          // No amount+text match found → try GL suggestion rules
+          // Only suggest for truly unambiguous vendors
           const sg=suggestGL(t.vRaw,dgl);
           const gref2=dgl.find(g=>g.po===sg.po);
           return{...t,
             status:sg.po?'suggested':'unmatched',
-            po:sg.po,
-            gl:sg.gl||'',
-            prog:gref2?gref2.prog:'',
-            poDesc:gref2?gref2.desc:'',
+            po:sg.po,gl:sg.gl||'',
+            prog:gref2?gref2.prog:'',poDesc:gref2?gref2.desc:'',
             notes:sg.note};
         });
 
@@ -282,6 +314,7 @@ function App(){
         if(r){u.gl=r.gl;u.prog=r.prog;u.poDesc=r.desc;if(!u.notes)u.notes=r.desc;}
         u.status='assigned';
       }
+      if(f==='po'&&!v){u.gl='';u.prog='';u.poDesc='';u.status='unmatched';}
       if(f==='status')u.status=v;
       return u;
     }));
@@ -333,7 +366,6 @@ function App(){
 
   return(
     <div>
-      {/* HEADER */}
       <div style={{background:'#111827',borderBottom:'1px solid #1f2937',padding:'14px 24px'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',maxWidth:1440,margin:'0 auto',flexWrap:'wrap',gap:10}}>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -355,7 +387,6 @@ function App(){
         </div>
       </div>
 
-      {/* TABS */}
       <div style={{background:'#111827',borderBottom:'1px solid #1f2937',padding:'0 24px'}}>
         <div style={{display:'flex',maxWidth:1440,margin:'0 auto'}}>
           {[['load','📂 Load Data'],['review','📋 Review'],['needsPO','⚠️ Needs PO'],['export','📊 Export']].map(([k,l])=>
@@ -368,7 +399,6 @@ function App(){
 
       <div style={{maxWidth:1440,margin:'0 auto',padding:'20px 24px'}}>
 
-        {/* LOAD */}
         {tab==='load'&&<div style={{display:'grid',gap:16}}>
           <div className="card">
             <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}>
@@ -394,7 +424,7 @@ function App(){
               <span className="step-badge" style={{background:'#10b981'}}>STEP 3</span>
               <span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Process & Match</span>
             </div>
-            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Smart matching: requires <strong>both</strong> matching amount <strong>and</strong> vendor text similarity against PO descriptions.</p>
+            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Only auto-matches when both amount AND vendor text match a PO entry. Suggests only for unambiguous vendors (Heroku, AWS, airlines).</p>
             <button className="btn" onClick={process} disabled={!canProcess}
               style={{padding:'11px 28px',fontSize:13,borderRadius:8,fontFamily:'inherit',
                 background:canProcess?'linear-gradient(135deg,#3b82f6,#8b5cf6)':'#374151',
@@ -407,7 +437,6 @@ function App(){
           </div>
         </div>}
 
-        {/* REVIEW & NEEDS PO */}
         {(tab==='review'||tab==='needsPO')&&<div>
           <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
             <input type="text" placeholder="🔍 Search..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:200,padding:'6px 10px',fontSize:12}}/>
@@ -426,7 +455,7 @@ function App(){
           <div style={{overflow:'auto',borderRadius:8,border:'1px solid #1f2937',background:'#111827',maxHeight:'calc(100vh - 240px)'}}>
             <table>
               <thead><tr>
-                {[['date','Date',78],['vendor','Vendor',170],['amount','Amount',78],['status','Status',85],['po','PO#',150],['gl','GL Code',120],['prog','Program',100],['notes','Notes',150],['_','',55]].map(([k,l,w])=>
+                {[['date','Date',78],['vendor','Vendor',170],['amount','Amount',78],['status','Status',85],['po','PO#',180],['gl','GL Code',120],['prog','Program',90],['notes','Notes',140],['_','',55]].map(([k,l,w])=>
                   <th key={k} onClick={()=>k!=='_'&&tSort(k)} style={{width:w,textAlign:k==='amount'?'right':'left',cursor:k==='_'?'default':'pointer'}}>
                     {l}{sortK===k?(sortD==='asc'?' ↑':' ↓'):''}
                   </th>
@@ -441,12 +470,9 @@ function App(){
                       {t.amount<0?'('+Math.abs(t.amount).toFixed(2)+')':'$'+t.amount.toFixed(2)}
                     </td>
                     <td><span className="status-badge" style={{background:sc.bg,color:sc.c}}>{sc.l}</span></td>
-                    <td style={{padding:'4px 5px'}}>
+                    <td style={{padding:'4px 5px',overflow:'visible',position:'relative'}}>
                       {t.status==='done'?<span className="mono" style={{fontSize:10.5,color:'#34d399',padding:'0 3px'}}>{t.po}</span>:
-                      <select value={t.po} onChange={e=>update(t.id,'po',e.target.value)}>
-                        <option value="">-- PO --</option>
-                        {glRef.map(g=><option key={g.po} value={g.po}>{g.po+' · '+g.desc+' ('+g.prog+')'}</option>)}
-                      </select>}
+                      <POSelect value={t.po} glRef={glRef} onChange={v=>update(t.id,'po',v)}/>}
                     </td>
                     <td className="mono" style={{fontSize:9,color:'#6b7280'}}>{t.gl}</td>
                     <td style={{fontSize:10,color:'#a78bfa',fontWeight:500}}>{t.prog}</td>
@@ -482,7 +508,6 @@ function App(){
           </details>}
         </div>}
 
-        {/* EXPORT */}
         {tab==='export'&&<div className="card" style={{padding:40,textAlign:'center'}}>
           <div style={{fontSize:44,marginBottom:10}}>📊</div>
           <h3 style={{fontSize:19,fontWeight:700,color:'#f9fafb',marginBottom:6}}>Export Reconciliation</h3>
