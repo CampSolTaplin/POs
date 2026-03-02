@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hebraica PO Reconciliation</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',system-ui,sans-serif;background:#0c111b;color:#e2e8f0;min-height:100vh}
+  ::-webkit-scrollbar{width:5px;height:5px}
+  ::-webkit-scrollbar-track{background:#1e293b}
+  ::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .rh:hover{background:#172033!important}
+  .btn{border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;transition:all .12s}
+  .btn:hover{filter:brightness(1.15)}
+  .btn:active{transform:scale(.98)}
+  .card{background:#111827;border-radius:10px;padding:24px;border:1px solid #1f2937}
+  .step-badge{color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block}
+  .upload-box{border:2px dashed #475569;border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;background:#0c111b;transition:all .2s}
+  .upload-box:hover{border-color:#3b82f6;background:rgba(59,130,246,0.05)}
+  .upload-box.has-file{border-color:#4ade80;background:rgba(74,222,128,0.04)}
+  .upload-box.dragging{border-color:#3b82f6;background:rgba(59,130,246,0.08)}
+  table{width:100%;border-collapse:collapse}
+  th{padding:8px;text-align:left;color:#9ca3af;font-weight:600;font-size:10px;letter-spacing:.4px;
+    position:sticky;top:0;background:#1f2937;z-index:1;user-select:none;cursor:pointer;white-space:nowrap}
+  td{padding:7px 8px}
+  .status-badge{display:inline-block;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700}
+  .filter-btn{padding:5px 11px;font-size:10.5px;border-radius:4px;background:transparent;color:#6b7280;border:1px solid transparent;font-family:inherit}
+  .filter-btn.active{background:#1f2937;color:#e5e7eb;border-color:#374151}
+  select,input[type=text]{font-family:inherit;width:100%;padding:4px 5px;font-size:10px;border-radius:4px;background:#0c111b;border:1px solid #374151;color:#e5e7eb}
+  textarea{font-family:'JetBrains Mono',monospace;width:100%;padding:12px;font-size:11px;background:#0c111b;border:1px solid #1f2937;border-radius:8px;color:#d1d5db;resize:vertical;line-height:1.6}
+  details summary{cursor:pointer;font-size:11.5px;font-weight:600;color:#9ca3af;padding:5px 0}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState, useCallback, useRef, useMemo} = React;
+
+/* ─── Auto-suggestion rules ─── */
+const GL_RULES = [
+  {p:['HEROKU','CONSTANT-CONTACT','CCI*CONSTANT','GOOGLE *GOOGLE ONE','AWS','AMAZON WEB','VERCEL','PADDLE','N8N','CLAUDE.AI','ANTHROPIC','OPENAI','CHATGPT','PRIME VIDEO','KINDLE'],po:'50-31',gl:'01-50-08050-0',n:'Application/Tech'},
+  {p:['AEROMEXICO'],po:'50-09',gl:'01-50-08952-514',n:'NOAR Mexico'},
+  {p:['JETBLUE'],po:'50-28',gl:'01-50-08952-5002',n:'Costa Rica'},
+  {p:['EL AL'],po:'50-16',gl:'01-50-08804-502',n:'SOM Conference'},
+  {p:['COPA'],po:'50-10',gl:'01-50-08952-577',n:'NOAR Panama'},
+  {p:['AMERICAN AIRLINES'],po:'50-12',gl:'01-50-08804-511',n:'Pre-SOM Conference'},
+  {p:['TRAVEL AGENCY'],po:'50-09',gl:'01-50-08952-514',n:'NOAR Mexico'},
+  {p:['PANAMA','NACIONSUSHI','YOSS BURGER','COFFEE BEAN Y TE','FARMACIA ARROCHA','LARGE SCREEN CINEMA','SHAKIS','PITA PAN'],po:'50-10',gl:'01-50-08952-577',n:'NOAR Panama'},
+  {p:['PUBLIX','KOSHER KINGDOM',"DANO'S",'DANOS CAFE',"ELSIE'S",'ELSIES CAFE','JCAFE','J CAFE','FREDDO','KRISPY','POKE','PICCOLA','NEWSCONNECTION','SEED TO TABLE','WAWA'],po:'50-22',gl:'01-50-08104-0',n:'Events'},
+  {p:['PREFERRED PARTY','BLAST PARTY','TODD LYNN','TERRYSFACEP','VA BOONE'],po:'50-34',gl:'01-50-01500-5003',n:'Challah Bake'},
+  {p:['WIX','CALANIT'],po:'50-01',gl:'01-50-08004-503',n:'Service providers'},
+  {p:['SUNPASS','MIA PARKING','PARKING'],po:'50-22',gl:'01-50-08104-0',n:'Events'},
+  {p:['TARGET','GREENWAY LIQUORS'],po:'50-30',gl:'01-50-08804-0',n:'Conferences'},
+  {p:['CAUSEMATCH'],po:'50-31',gl:'01-50-08050-0',n:'Application'},
+];
+
+function suggestGL(v,ref){
+  const u=(v||'').toUpperCase();
+  for(const r of GL_RULES){if(r.p.some(x=>u.includes(x))){const m=ref.find(g=>g.po===r.po);return{po:r.po,gl:m?m.gl:r.gl,note:r.n};}}
+  return{po:'',gl:'',note:''};
+}
+
+/* ─── Parse statement ─── */
+function parseStmt(text){
+  const lines=text.split('\n').map(l=>l.replace(/<https?:\/\/[^>]+>/g,'').trim()).filter(Boolean);
+  const t=[];let i=0;
+  while(i<lines.length){
+    if(['ROSEMBERG','ROSENBERG'].includes(lines[i]?.toUpperCase())&&i+4<lines.length){
+      let c=lines[i+3].replace(/[$,]/g,'').trim();const cr=c.includes('(');c=c.replace(/[()]/g,'');
+      let a=parseFloat(c)||0;if(cr)a=-a;
+      t.push({id:'t'+t.length,date:lines[i+2],amount:a,vRaw:lines[i+4],vendor:lines[i+4].replace(/\s{2,}.*/,'').trim(),status:'unmatched',po:'',gl:'',notes:''});
+      i+=5;continue;
+    }
+    i++;
+  }
+  return t;
+}
+
+/* ─── Parse PO Excel ─── */
+function parsePO(wb,src){
+  const gl=[],entries=[];
+  for(const sn of wb.SheetNames){
+    if(sn==='instructions'||sn==='PO Req form')continue;
+    const d=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
+    let po='',desc='',glc='',prog='',hr=-1;
+    for(let r=0;r<Math.min(10,d.length);r++){
+      const row=d[r]||[];
+      for(let c=0;c<row.length;c++){
+        const v=String(row[c]||'').trim();
+        if(v==='NUMBER'){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){po=String(row[j]).trim();break;}}
+        if(v.includes('Description:')){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){desc=String(row[j]).trim();break;}}
+        if(v==='GL Coding'){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){glc=String(row[j]).trim();break;}}
+        if(v==='PROGRAM'){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){prog=String(row[j]).trim();break;}}
+        if(v==='VENDOR TO BE PAID')hr=r;
+      }
+    }
+    if(po&&glc)gl.push({po,desc,gl:glc,prog,src});
+    if(hr>=0)for(let r=hr+1;r<d.length;r++){
+      const row=d[r]||[],ven=String(row[3]||'').trim(),amt=parseFloat(row[7])||0;
+      if(ven&&amt!==0)entries.push({po,gl:glc,vendor:ven,desc:String(row[4]||'').trim(),amount:amt,month:String(row[5]||'').trim(),src});
+    }
+  }
+  return{gl,entries};
+}
+
+const SC={
+  done:{bg:'#dcfce7',c:'#166534',l:'DONE ✓'},
+  assigned:{bg:'#dbeafe',c:'#1e40af',l:'ASSIGNED'},
+  suggested:{bg:'#fef9c3',c:'#854d0e',l:'SUGGESTED'},
+  unmatched:{bg:'#fee2e2',c:'#991b1b',l:'NEEDS PO'},
+};
+
+/* ─── Upload Box ─── */
+function UploadBox({label,icon,file,onFile}){
+  const ref=useRef(null);
+  const[drag,setDrag]=useState(false);
+  const cls='upload-box'+(file?' has-file':'')+(drag?' dragging':'');
+  return(
+    <div className={cls}
+      onDragOver={e=>{e.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)}
+      onDrop={e=>{e.preventDefault();setDrag(false);if(e.dataTransfer.files[0])onFile(e.dataTransfer.files[0])}}
+      onClick={()=>ref.current?.click()}>
+      <input ref={ref} type="file" accept=".xlsx,.xls" style={{display:'none'}} onChange={e=>e.target.files[0]&&onFile(e.target.files[0])} />
+      <div style={{fontSize:36,marginBottom:8}}>{file?'✅':icon}</div>
+      <div style={{fontSize:13,fontWeight:700,color:file?'#4ade80':'#e2e8f0'}}>{file?file.name:label}</div>
+      <div style={{fontSize:11,color:'#6b7280',marginTop:4}}>{file?Math.round(file.size/1024)+' KB loaded':'Drop file or click'}</div>
+    </div>
+  );
+}
+
+/* ─── Main App ─── */
+function App(){
+  const[tab,setTab]=useState('load');
+  const[stmt,setStmt]=useState('');
+  const[f1,setF1]=useState(null);
+  const[f2,setF2]=useState(null);
+  const[txns,setTxns]=useState([]);
+  const[glRef,setGlRef]=useState([]);
+  const[busy,setBusy]=useState(false);
+  const[log,setLog]=useState([]);
+  const[filter,setFilter]=useState('all');
+  const[search,setSearch]=useState('');
+  const[sortK,setSortK]=useState('date');
+  const[sortD,setSortD]=useState('desc');
+
+  const readXL=useCallback(f=>new Promise((ok,no)=>{
+    const r=new FileReader();
+    r.onload=e=>{try{ok(XLSX.read(new Uint8Array(e.target.result),{type:'array'}))}catch(err){no(err)}};
+    r.onerror=no;r.readAsArrayBuffer(f);
+  }),[]);
+
+  const process=useCallback(async()=>{
+    setBusy(true);const L=[];let agl=[],ape=[];
+    try{
+      if(f1){L.push('📖 Reading Hebraica...');setLog([...L]);const wb=await readXL(f1);const r=parsePO(wb,'Hebraica');agl.push(...r.gl);ape.push(...r.entries);L.push('  ✅ '+r.gl.length+' POs, '+r.entries.length+' entries');setLog([...L]);}
+      if(f2){L.push('📖 Reading Camp...');setLog([...L]);const wb=await readXL(f2);const r=parsePO(wb,'Camp');agl.push(...r.gl);ape.push(...r.entries);L.push('  ✅ '+r.gl.length+' POs, '+r.entries.length+' entries');setLog([...L]);}
+      const m=new Map();agl.forEach(g=>{if(!m.has(g.po))m.set(g.po,g)});
+      const dgl=Array.from(m.values()).sort((a,b)=>parseFloat(a.po.replace('-','.'))-parseFloat(b.po.replace('-','.')));
+      setGlRef(dgl);
+      if(stmt.trim()){
+        L.push('📧 Parsing statement...');setLog([...L]);
+        const raw=parseStmt(stmt);L.push('  '+raw.length+' transactions');
+        L.push('🔄 Matching...');setLog([...L]);
+        const matched=raw.map(t=>{
+          const ex=ape.filter(e=>Math.abs(e.amount-t.amount)<0.02);
+          let done=false,mpo='',mgl='',mdet='';
+          for(const e of ex){if(e.vendor.toLowerCase().includes('amex')||e.vendor.toLowerCase().includes('marleny')){done=true;mpo=e.po;mgl=e.gl;mdet=e.desc+' ('+e.src+')';break;}}
+          const sg=suggestGL(t.vRaw,dgl);
+          return{...t,status:done?'done':sg.po?'suggested':'unmatched',po:done?mpo:sg.po,gl:done?mgl:sg.gl,notes:done?'Auto: '+mdet:sg.note};
+        });
+        setTxns(matched);
+        const dn=matched.filter(x=>x.status==='done').length,sg=matched.filter(x=>x.status==='suggested').length,um=matched.filter(x=>x.status==='unmatched').length;
+        L.push('  ✅ Matched:'+dn+' | Suggested:'+sg+' | NeedsPO:'+um);
+      }
+      L.push('');L.push('🎉 Done! Switch to Review tab.');setLog([...L]);
+      setTimeout(()=>setTab('review'),700);
+    }catch(e){L.push('❌ '+e.message);setLog([...L]);}
+    setBusy(false);
+  },[f1,f2,stmt,readXL]);
+
+  const update=useCallback((id,f,v)=>{
+    setTxns(p=>p.map(t=>{
+      if(t.id!==id)return t;
+      const u={...t,[f]:v};
+      if(f==='po'&&v){const r=glRef.find(g=>g.po===v);if(r){u.gl=r.gl;if(!u.notes)u.notes=r.desc;}u.status='assigned';}
+      if(f==='status')u.status=v;
+      return u;
+    }));
+  },[glRef]);
+
+  const acceptAll=useCallback(()=>{setTxns(p=>p.map(t=>(t.status==='suggested'||t.status==='assigned')?{...t,status:'done'}:t))},[]);
+
+  const filtered=useMemo(()=>{
+    let r=[...txns];
+    if(tab==='needsPO')r=r.filter(t=>t.status!=='done');
+    else if(filter==='needsPO')r=r.filter(t=>t.status==='unmatched');
+    else if(filter!=='all')r=r.filter(t=>t.status===filter);
+    if(search){const s=search.toLowerCase();r=r.filter(t=>t.vendor.toLowerCase().includes(s)||t.vRaw.toLowerCase().includes(s)||t.po.toLowerCase().includes(s)||t.notes.toLowerCase().includes(s));}
+    r.sort((a,b)=>{const va=sortK==='amount'?a.amount:(a[sortK]??''),vb=sortK==='amount'?b.amount:(b[sortK]??'');return va<vb?(sortD==='asc'?-1:1):va>vb?(sortD==='asc'?1:-1):0;});
+    return r;
+  },[txns,filter,search,sortK,sortD,tab]);
+
+  const stats=useMemo(()=>{
+    const t=txns.length,d=txns.filter(x=>x.status==='done').length,s=txns.filter(x=>x.status==='suggested').length,
+      u=txns.filter(x=>x.status==='unmatched').length,a=txns.filter(x=>x.status==='assigned').length,
+      ta=txns.reduce((s,t)=>s+t.amount,0);
+    return{t,d,s,u,a,ta,pend:t-d};
+  },[txns]);
+
+  const exportCSV=useCallback(()=>{
+    const h='Date,Vendor,Full Vendor,Amount,Status,PO#,GL Code,Notes\n';
+    const rows=txns.map(t=>[t.date,'"'+t.vendor+'"','"'+t.vRaw.replace(/"/g,'""')+'"',t.amount.toFixed(2),t.status,t.po,t.gl,'"'+t.notes.replace(/"/g,'""')+'"'].join(',')).join('\n');
+    const b=new Blob([h+rows],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='PO_Recon_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  },[txns]);
+
+  const tSort=k=>{if(sortK===k)setSortD(d=>d==='asc'?'desc':'asc');else{setSortK(k);setSortD('asc');}};
+
+  const canProcess=!busy&&(f1||f2)&&stmt.trim();
+
+  return(
+    <div>
+      {/* ─── HEADER ─── */}
+      <div style={{background:'#111827',borderBottom:'1px solid #1f2937',padding:'14px 24px'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',maxWidth:1440,margin:'0 auto',flexWrap:'wrap',gap:10}}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <div style={{width:36,height:36,borderRadius:8,background:'linear-gradient(135deg,#3b82f6,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:700,color:'#fff'}}>₪</div>
+            <div>
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:2.5,color:'#6b7280'}}>HEBRAICA · MARJCC</div>
+              <div style={{fontSize:17,fontWeight:700,color:'#f9fafb'}}>PO Reconciliation</div>
+            </div>
+          </div>
+          {stats.t>0&&<div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+            {[{n:stats.d,l:'DONE',c:'#34d399'},{n:stats.a,l:'ASSGN',c:'#60a5fa'},{n:stats.s,l:'SUGG',c:'#fbbf24'},{n:stats.u,l:'NEEDS',c:'#f87171'}].map(s=>
+              <div key={s.l} style={{textAlign:'center'}}><div style={{fontSize:20,fontWeight:700,color:s.c,lineHeight:1}}>{s.n}</div><div style={{fontSize:8,color:'#6b7280',fontWeight:600,letterSpacing:.8,marginTop:2}}>{s.l}</div></div>
+            )}
+            <div style={{textAlign:'center',borderLeft:'1px solid #374151',paddingLeft:16}}>
+              <div className="mono" style={{fontSize:15,fontWeight:700,color:'#e5e7eb',lineHeight:1}}>${stats.ta.toLocaleString('en-US',{maximumFractionDigits:0})}</div>
+              <div style={{fontSize:8,color:'#6b7280',fontWeight:600,letterSpacing:.8,marginTop:2}}>TOTAL</div>
+            </div>
+          </div>}
+        </div>
+      </div>
+
+      {/* ─── TABS ─── */}
+      <div style={{background:'#111827',borderBottom:'1px solid #1f2937',padding:'0 24px'}}>
+        <div style={{display:'flex',maxWidth:1440,margin:'0 auto'}}>
+          {[['load','📂 Load Data'],['review','📋 Review'],['needsPO','⚠️ Needs PO'],['export','📊 Export']].map(([k,l])=>
+            <button key={k} onClick={()=>setTab(k)} className="btn"
+              style={{padding:'11px 16px',fontSize:12,fontWeight:600,color:tab===k?'#f9fafb':'#6b7280',background:'transparent',
+                borderBottom:tab===k?'2px solid #3b82f6':'2px solid transparent',borderRadius:0,fontFamily:'inherit'}}>{l}</button>
+          )}
+        </div>
+      </div>
+
+      <div style={{maxWidth:1440,margin:'0 auto',padding:'20px 24px'}}>
+
+        {/* ═══ LOAD ═══ */}
+        {tab==='load'&&<div style={{display:'grid',gap:16}}>
+          <div className="card">
+            <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}>
+              <span className="step-badge" style={{background:'#3b82f6'}}>STEP 1</span>
+              <span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Upload PO Files</span>
+            </div>
+            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Upload your latest Hebraica and Camp PO Excel files. The system extracts all PO numbers, GL codes, and existing entries.</p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              <UploadBox label="Hebraica 2026.xlsx" icon="📗" file={f1} onFile={setF1}/>
+              <UploadBox label="Camp PO 2026.xlsx" icon="📘" file={f2} onFile={setF2}/>
+            </div>
+          </div>
+
+          <div className="card">
+            <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}>
+              <span className="step-badge" style={{background:'#8b5cf6'}}>STEP 2</span>
+              <span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Paste Statement</span>
+            </div>
+            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Copy the full text from Lenny's email (Visa or AMEX) and paste it below.</p>
+            <textarea value={stmt} onChange={e=>setStmt(e.target.value)} placeholder={"Paste the statement here...\n\nROSEMBERG\nMARLENY\n02/28/2026\n$51.00\nUBER EATS    HTTPS://HELP.UBER. CA"} style={{height:180}}/>
+          </div>
+
+          <div className="card">
+            <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}>
+              <span className="step-badge" style={{background:'#10b981'}}>STEP 3</span>
+              <span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Process & Match</span>
+            </div>
+            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Parses Excel files, cross-references with the statement, and auto-suggests GL codes.</p>
+            <button className="btn" onClick={process} disabled={!canProcess}
+              style={{padding:'11px 28px',fontSize:13,borderRadius:8,fontFamily:'inherit',
+                background:canProcess?'linear-gradient(135deg,#3b82f6,#8b5cf6)':'#374151',
+                color:canProcess?'#fff':'#6b7280'}}>
+              {busy?'⏳ Processing...':'🚀 Process Everything'}
+            </button>
+            {log.length>0&&<div style={{marginTop:12,padding:10,background:'#0c111b',borderRadius:8,border:'1px solid #1f2937',maxHeight:160,overflow:'auto'}}>
+              {log.map((l,i)=><div key={i} className="mono" style={{fontSize:11,color:l.includes('✅')?'#34d399':l.includes('❌')?'#f87171':l.includes('🎉')?'#fbbf24':'#9ca3af',marginBottom:2}}>{l}</div>)}
+            </div>}
+          </div>
+        </div>}
+
+        {/* ═══ REVIEW & NEEDS PO ═══ */}
+        {(tab==='review'||tab==='needsPO')&&<div>
+          <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
+            <input type="text" placeholder="🔍 Search..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:200,padding:'6px 10px',fontSize:12}}/>
+            {tab==='review'&&<div style={{display:'flex',gap:2}}>
+              {[['all','All'],['needsPO','Needs PO'],['suggested','Suggested'],['assigned','Assigned'],['done','Done']].map(([k,l])=>
+                <button key={k} className={'btn filter-btn'+(filter===k?' active':'')} onClick={()=>setFilter(k)}>{l}</button>
+              )}
+            </div>}
+            <div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}>
+              {(stats.s+stats.a>0)&&<button className="btn" onClick={acceptAll}
+                style={{padding:'5px 10px',fontSize:10.5,borderRadius:4,background:'#166534',color:'#dcfce7',fontFamily:'inherit'}}>✓ Accept all suggested</button>}
+              <span style={{fontSize:10.5,color:'#6b7280'}}>{filtered.length}/{txns.length}</span>
+            </div>
+          </div>
+
+          <div style={{overflow:'auto',borderRadius:8,border:'1px solid #1f2937',background:'#111827',maxHeight:'calc(100vh - 240px)'}}>
+            <table>
+              <thead><tr>
+                {[['date','Date',80],['vendor','Vendor',185],['amount','Amount',80],['status','Status',88],['po','PO#',158],['gl','GL Code',130],['notes','Notes',175],['_','',55]].map(([k,l,w])=>
+                  <th key={k} onClick={()=>k!=='_'&&tSort(k)} style={{width:w,textAlign:k==='amount'?'right':'left',cursor:k==='_'?'default':'pointer'}}>
+                    {l}{sortK===k?(sortD==='asc'?' ↑':' ↓'):''}
+                  </th>
+                )}
+              </tr></thead>
+              <tbody>
+                {filtered.map(t=>{const sc=SC[t.status]||SC.unmatched;return(
+                  <tr key={t.id} className="rh" style={{borderBottom:'1px solid #0c111b'}}>
+                    <td className="mono" style={{fontSize:10,color:'#9ca3af'}}>{t.date}</td>
+                    <td style={{color:'#e5e7eb',maxWidth:185,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={t.vRaw}>{t.vendor}</td>
+                    <td className="mono" style={{textAlign:'right',fontWeight:600,fontSize:11,color:t.amount<0?'#f87171':'#34d399'}}>
+                      {t.amount<0?'('+Math.abs(t.amount).toFixed(2)+')':'$'+t.amount.toFixed(2)}
+                    </td>
+                    <td><span className="status-badge" style={{background:sc.bg,color:sc.c}}>{sc.l}</span></td>
+                    <td style={{padding:'4px 5px'}}>
+                      {t.status==='done'?<span className="mono" style={{fontSize:10.5,color:'#34d399',padding:'0 3px'}}>{t.po}</span>:
+                      <select value={t.po} onChange={e=>update(t.id,'po',e.target.value)}>
+                        <option value="">-- PO --</option>
+                        {glRef.map(g=><option key={g.po} value={g.po}>{g.po+' · '+g.desc}</option>)}
+                      </select>}
+                    </td>
+                    <td className="mono" style={{fontSize:9,color:'#6b7280'}}>{t.gl}</td>
+                    <td style={{padding:'4px 5px'}}>
+                      {t.status==='done'?<span style={{fontSize:10,color:'#9ca3af'}}>{t.notes}</span>:
+                      <input type="text" value={t.notes} onChange={e=>update(t.id,'notes',e.target.value)} placeholder="Note..." style={{fontSize:10.5}}/>}
+                    </td>
+                    <td style={{textAlign:'center',padding:'4px 5px'}}>
+                      {t.status!=='done'&&t.po&&<button className="btn" onClick={()=>update(t.id,'status','done')}
+                        style={{padding:'2px 8px',fontSize:9.5,borderRadius:3,background:'#166534',color:'#dcfce7',fontFamily:'inherit'}}>✓</button>}
+                      {t.status==='done'&&<button className="btn" onClick={()=>update(t.id,'status','assigned')}
+                        style={{padding:'2px 6px',fontSize:8.5,borderRadius:3,background:'#374151',color:'#9ca3af',fontFamily:'inherit'}}>↩</button>}
+                    </td>
+                  </tr>
+                );})}
+                {filtered.length===0&&<tr><td colSpan={8} style={{padding:32,textAlign:'center',color:'#6b7280'}}>
+                  {txns.length===0?'No data loaded. Go to Load Data tab.':'No matches for this filter.'}
+                </td></tr>}
+              </tbody>
+            </table>
+          </div>
+
+          {tab==='needsPO'&&glRef.length>0&&<details style={{marginTop:12}}>
+            <summary>📖 GL Reference ({glRef.length} codes)</summary>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:3,marginTop:6}}>
+              {glRef.map((g,i)=><div key={i} style={{padding:'4px 8px',background:'#111827',borderRadius:4,border:'1px solid #1f2937',fontSize:10,display:'flex',gap:6}}>
+                <span className="mono" style={{color:'#60a5fa',fontWeight:600,minWidth:40}}>{g.po}</span>
+                <span style={{color:'#d1d5db',flex:1}}>{g.desc}</span>
+                <span className="mono" style={{color:'#6b7280',fontSize:9}}>{g.gl}</span>
+              </div>)}
+            </div>
+          </details>}
+        </div>}
+
+        {/* ═══ EXPORT ═══ */}
+        {tab==='export'&&<div className="card" style={{padding:40,textAlign:'center'}}>
+          <div style={{fontSize:44,marginBottom:10}}>📊</div>
+          <h3 style={{fontSize:19,fontWeight:700,color:'#f9fafb',marginBottom:6}}>Export Reconciliation</h3>
+          <p style={{fontSize:12,color:'#9ca3af',maxWidth:420,margin:'0 auto 24px'}}>Download CSV for Google Sheets with all transactions, POs, GL codes, and status.</p>
+          <div style={{display:'flex',gap:14,justifyContent:'center',marginBottom:24,flexWrap:'wrap'}}>
+            {[['TOTAL',stats.t,'#9ca3af'],['DONE',stats.d,'#34d399'],['PENDING',stats.pend,'#f87171']].map(([l,v,c])=>
+              <div key={l} style={{padding:'12px 20px',background:'#0c111b',borderRadius:8,minWidth:90}}>
+                <div style={{fontSize:22,fontWeight:700,color:c}}>{v}</div>
+                <div style={{fontSize:9,color:'#6b7280',marginTop:2,fontWeight:600,letterSpacing:.5}}>{l}</div>
+              </div>
+            )}
+          </div>
+          {stats.pend>0&&<p style={{fontSize:11,color:'#fbbf24',marginBottom:16}}>⚠️ {stats.pend} transactions still pending</p>}
+          <button className="btn" onClick={exportCSV} disabled={!stats.t}
+            style={{padding:'12px 32px',fontSize:14,borderRadius:8,fontFamily:'inherit',
+              background:stats.t?'linear-gradient(135deg,#3b82f6,#8b5cf6)':'#374151',color:stats.t?'#fff':'#6b7280'}}>
+            ⬇ Download CSV
+          </button>
+        </div>}
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById('root'));
+</script>
+</body>
+</html>
