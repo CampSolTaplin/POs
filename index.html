@@ -43,26 +43,65 @@
 <script type="text/babel">
 const {useState, useCallback, useRef, useMemo} = React;
 
+/* ─── TEXT SIMILARITY: fuzzy matching between vendor and PO description ─── */
+const NOISE = new Set(['the','and','a','an','of','in','at','to','for','on','by','with','from','or','is','it','its',
+  'http','https','www','com','fl','ca','ny','ma','wa','ct','tx','nj','mn','co','il','pa',
+  'amzn','bill','pay','helppay','no','rec','norec','nan','undefined','null',
+  '000','0000','00000','0000015','888','855','800','877']);
+
+function tokenize(s){
+  return (s||'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').split(/\s+/)
+    .filter(w=>w.length>1&&!NOISE.has(w.toLowerCase())&&!/^\d{1,3}$/.test(w));
+}
+
+/* Substring match: does any token from A appear as substring in B or vice versa? */
+function textSimilarity(stmtVendor, poDesc){
+  const tA=tokenize(stmtVendor), tB=tokenize(poDesc);
+  if(!tA.length||!tB.length)return 0;
+  let hits=0;
+  for(const a of tA){
+    for(const b of tB){
+      // exact token match
+      if(a===b){hits+=2;continue;}
+      // one contains the other (min 3 chars to avoid noise)
+      if(a.length>=3&&b.length>=3){
+        if(a.includes(b)||b.includes(a)){hits+=1.5;continue;}
+      }
+      // first 4+ chars match (handles plurals, abbreviations)
+      if(a.length>=4&&b.length>=4&&a.slice(0,4)===b.slice(0,4)){hits+=1;}
+    }
+  }
+  const maxPossible=Math.max(tA.length,tB.length)*2;
+  return maxPossible>0?hits/maxPossible:0;
+}
+
+/* Check if vendor is a known "Amex Marleny" or similar payment card entry */
+function isCardEntry(vendor){
+  const u=(vendor||'').toUpperCase();
+  return u.includes('AMEX')&&u.includes('MARLEN') || u.includes('MARLENY AMEX') ||
+    u.includes('AMEX MARLENY') || u.includes('MARLENY AMEA') || /^AMEX\s/i.test(u);
+}
+
 const GL_RULES = [
-  {p:['HEROKU','CONSTANT-CONTACT','CCI*CONSTANT','GOOGLE *GOOGLE ONE','AWS','AMAZON WEB','VERCEL','PADDLE','N8N','CLAUDE.AI','ANTHROPIC','OPENAI','CHATGPT','PRIME VIDEO','KINDLE'],po:'50-31',gl:'01-50-08050-0',n:'Application/Tech'},
-  {p:['AEROMEXICO'],po:'50-09',gl:'01-50-08952-514',n:'NOAR Mexico'},
-  {p:['JETBLUE'],po:'50-28',gl:'01-50-08952-5002',n:'Costa Rica'},
-  {p:['EL AL'],po:'50-16',gl:'01-50-08804-502',n:'SOM Conference'},
-  {p:['COPA'],po:'50-10',gl:'01-50-08952-577',n:'NOAR Panama'},
-  {p:['AMERICAN AIRLINES'],po:'50-12',gl:'01-50-08804-511',n:'Pre-SOM Conference'},
-  {p:['TRAVEL AGENCY'],po:'50-09',gl:'01-50-08952-514',n:'NOAR Mexico'},
-  {p:['PANAMA','NACIONSUSHI','YOSS BURGER','COFFEE BEAN Y TE','FARMACIA ARROCHA','LARGE SCREEN CINEMA','SHAKIS','PITA PAN'],po:'50-10',gl:'01-50-08952-577',n:'NOAR Panama'},
-  {p:['PUBLIX','KOSHER KINGDOM',"DANO'S",'DANOS CAFE',"ELSIE'S",'ELSIES CAFE','JCAFE','J CAFE','FREDDO','KRISPY','POKE','PICCOLA','NEWSCONNECTION','SEED TO TABLE','WAWA'],po:'50-22',gl:'01-50-08104-0',n:'Events'},
-  {p:['PREFERRED PARTY','BLAST PARTY','TODD LYNN','TERRYSFACEP','VA BOONE'],po:'50-34',gl:'01-50-01500-5003',n:'Challah Bake'},
-  {p:['WIX','CALANIT'],po:'50-01',gl:'01-50-08004-503',n:'Service providers'},
-  {p:['SUNPASS','MIA PARKING','PARKING'],po:'50-22',gl:'01-50-08104-0',n:'Events'},
-  {p:['TARGET','GREENWAY LIQUORS'],po:'50-30',gl:'01-50-08804-0',n:'Conferences'},
-  {p:['CAUSEMATCH'],po:'50-31',gl:'01-50-08050-0',n:'Application'},
+  {p:['HEROKU','CONSTANT-CONTACT','CCI*CONSTANT','GOOGLE *GOOGLE ONE','AWS','AMAZON WEB','VERCEL','PADDLE','N8N','CLAUDE.AI','ANTHROPIC','OPENAI','CHATGPT','PRIME VIDEO','KINDLE'],po:'50-31',n:'Application/Tech'},
+  {p:['AEROMEXICO'],po:'50-09',n:'NOAR Mexico'},
+  {p:['JETBLUE'],po:'50-28',n:'Costa Rica'},
+  {p:['EL AL'],po:'50-16',n:'SOM Conference'},
+  {p:['COPA'],po:'50-10',n:'NOAR Panama'},
+  {p:['AMERICAN AIRLINES'],po:'50-12',n:'Pre-SOM Conference'},
+  {p:['TRAVEL AGENCY'],po:'50-09',n:'NOAR Mexico'},
+  {p:['PANAMA','NACIONSUSHI','YOSS BURGER','COFFEE BEAN Y TE','FARMACIA ARROCHA','LARGE SCREEN CINEMA','SHAKIS','PITA PAN'],po:'50-10',n:'NOAR Panama'},
+  {p:['PUBLIX','KOSHER KINGDOM',"DANO'S",'DANOS CAFE',"ELSIE'S",'ELSIES CAFE','JCAFE','J CAFE','FREDDO','KRISPY','POKE','PICCOLA','NEWSCONNECTION','SEED TO TABLE','WAWA'],po:'50-22',n:'Events'},
+  {p:['PREFERRED PARTY','BLAST PARTY','TODD LYNN','TERRYSFACEP','VA BOONE'],po:'50-34',n:'Challah Bake'},
+  {p:['WIX','CALANIT'],po:'50-01',n:'Service providers'},
+  {p:['SUNPASS','MIA PARKING','PARKING'],po:'50-22',n:'Events'},
+  {p:['TARGET','GREENWAY LIQUORS'],po:'50-30',n:'Conferences'},
+  {p:['CAUSEMATCH'],po:'50-31',n:'Application'},
 ];
 
 function suggestGL(v,ref){
   const u=(v||'').toUpperCase();
-  for(const r of GL_RULES){if(r.p.some(x=>u.includes(x))){const m=ref.find(g=>g.po===r.po);return{po:r.po,gl:m?m.gl:r.gl,note:r.n,prog:m?m.prog:'',desc:m?m.desc:''};}}
+  for(const r of GL_RULES){if(r.p.some(x=>u.includes(x))){const m=ref.find(g=>g.po===r.po);return{po:r.po,gl:m?m.gl:'',note:r.n,prog:m?m.prog:'',desc:m?m.desc:''};}}
   return{po:'',gl:'',note:'',prog:'',desc:''};
 }
 
@@ -99,14 +138,12 @@ function parsePO(wb,src){
         if(v==='PROGRAM'){for(let j=c+1;j<row.length;j++){const pv=String(row[j]).trim();if(pv&&pv!=='0'){prog=pv;break;}}}
       }
     }
-    // For Camp POs, default program to CAMP
-    if(po&&glc){
-      const finalProg = src==='Camp' ? 'CAMP' : (prog||'General');
-      gl.push({po,desc,gl:glc,prog:finalProg,src});
-    }
+    const finalProg = src==='Camp' ? 'CAMP' : (prog||'General');
+    if(po&&glc)gl.push({po,desc,gl:glc,prog:finalProg,src});
     if(hr>=0)for(let r=hr+1;r<d.length;r++){
       const row=d[r]||[],ven=String(row[3]||'').trim(),amt=parseFloat(row[7])||0;
-      if(ven&&amt!==0)entries.push({po,gl:glc,vendor:ven,desc:String(row[4]||'').trim(),amount:amt,month:String(row[5]||'').trim(),src});
+      const edesc=String(row[4]||'').trim();
+      if(ven&&amt!==0)entries.push({po,gl:glc,vendor:ven,desc:edesc,amount:amt,month:String(row[5]||'').trim(),src});
     }
   }
   return{gl,entries};
@@ -173,24 +210,59 @@ function App(){
       if(stmt.trim()){
         L.push('📧 Parsing statement...');setLog([...L]);
         const raw=parseStmt(stmt);L.push('  '+raw.length+' transactions');
-        L.push('🔄 Matching...');setLog([...L]);
+        L.push('🔄 Smart matching (amount + text similarity)...');setLog([...L]);
+
         const matched=raw.map(t=>{
-          const ex=ape.filter(e=>Math.abs(e.amount-t.amount)<0.02);
-          let done=false,mpo='',mgl='',mdet='',mprog='',mdesc='';
-          for(const e of ex){if(e.vendor.toLowerCase().includes('amex')||e.vendor.toLowerCase().includes('marleny')){
-            done=true;mpo=e.po;mgl=e.gl;mdet=e.desc+' ('+e.src+')';
-            const gref=dgl.find(g=>g.po===e.po);mprog=gref?gref.prog:'';mdesc=gref?gref.desc:'';break;
-          }}
+          /* ─── IMPROVED MATCHING LOGIC ─── 
+             Step 1: Find PO entries with matching amount (±$0.02)
+             Step 2: Among those, check if vendor is "Amex Marleny" (card holder)
+             Step 3: If card holder, compare STATEMENT vendor text with PO DESCRIPTION text
+             Step 4: Require minimum text similarity score to auto-match
+          */
+          const amtMatches=ape.filter(e=>Math.abs(e.amount-t.amount)<0.02);
+          let bestMatch=null, bestScore=0;
+
+          for(const e of amtMatches){
+            // Only match against entries paid by Marleny's cards
+            if(!isCardEntry(e.vendor))continue;
+
+            // Compare statement vendor with PO entry description
+            // e.desc = the DESCRIPTION column in the PO (e.g. "SUNPASS*ACC20759966 888-865-5352 FL")
+            const score=textSimilarity(t.vRaw, e.desc);
+
+            if(score>bestScore){
+              bestScore=score;
+              bestMatch=e;
+            }
+          }
+
+          // Threshold: need at least 0.15 similarity to auto-match
+          // This prevents "VA BOONE" matching "Hatzalah - Joseph Dahan" just because amounts match
+          const MATCH_THRESHOLD = 0.15;
+
+          if(bestMatch && bestScore >= MATCH_THRESHOLD){
+            const gref=dgl.find(g=>g.po===bestMatch.po);
+            return{...t,
+              status:'done',
+              po:bestMatch.po,
+              gl:bestMatch.gl,
+              prog:gref?gref.prog:'',
+              poDesc:gref?gref.desc:'',
+              notes:'Auto: '+bestMatch.desc+' (score:'+bestScore.toFixed(2)+', '+bestMatch.src+')'};
+          }
+
+          // No amount+text match found → try GL suggestion rules
           const sg=suggestGL(t.vRaw,dgl);
-          const gref2=dgl.find(g=>g.po===(done?mpo:sg.po));
+          const gref2=dgl.find(g=>g.po===sg.po);
           return{...t,
-            status:done?'done':sg.po?'suggested':'unmatched',
-            po:done?mpo:sg.po,
-            gl:done?mgl:sg.gl,
-            prog:done?mprog:(gref2?gref2.prog:''),
-            poDesc:done?mdesc:(gref2?gref2.desc:''),
-            notes:done?'Auto: '+mdet:sg.note};
+            status:sg.po?'suggested':'unmatched',
+            po:sg.po,
+            gl:sg.gl||'',
+            prog:gref2?gref2.prog:'',
+            poDesc:gref2?gref2.desc:'',
+            notes:sg.note};
         });
+
         setTxns(matched);
         const dn=matched.filter(x=>x.status==='done').length,sg=matched.filter(x=>x.status==='suggested').length,um=matched.filter(x=>x.status==='unmatched').length;
         L.push('  ✅ Matched:'+dn+' | Suggested:'+sg+' | NeedsPO:'+um);
@@ -219,7 +291,6 @@ function App(){
 
   const filtered=useMemo(()=>{
     let r=[...txns];
-    // CHANGE #4: Needs PO tab shows everything except 'done' (including assigned)
     if(tab==='needsPO')r=r.filter(t=>t.status!=='done');
     else if(filter==='needsPO')r=r.filter(t=>t.status==='unmatched');
     else if(filter!=='all')r=r.filter(t=>t.status===filter);
@@ -235,10 +306,8 @@ function App(){
     return{t,d,s,u,a,ta,pend:t-d};
   },[txns]);
 
-  // CHANGE #2 & #3: Export as Excel with specific columns, then mark all as done
   const exportExcel=useCallback(()=>{
     const prevMonth = getPrevMonth();
-    // Build data: group doesn't matter, just list all non-done transactions
     const toExport = txns.filter(t=>t.status==='assigned'||t.status==='suggested');
     const wsData = [['GL Name & Program','Description',prevMonth,'','Amount']];
     for(const t of toExport){
@@ -246,17 +315,13 @@ function App(){
       wsData.push([glLabel, t.vendor, prevMonth, '', t.amount]);
     }
     const ws = XLSX.utils.aoa_to_sheet(wsData);
-    // Column widths
     ws['!cols']=[{wch:40},{wch:35},{wch:18},{wch:5},{wch:12}];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'PO Export');
     XLSX.writeFile(wb,'PO_Export_'+prevMonth.replace(' ','_')+'.xlsx');
-
-    // CHANGE #3: Mark all assigned/suggested as done after export
     setTxns(p=>p.map(t=>(t.status==='assigned'||t.status==='suggested')?{...t,status:'done'}:t));
   },[txns]);
 
-  // Also keep CSV export for full data
   const exportCSV=useCallback(()=>{
     const h='Date,Vendor,Full Vendor,Amount,Status,PO#,GL Code,Program,Notes\n';
     const rows=txns.map(t=>[t.date,'"'+t.vendor+'"','"'+t.vRaw.replace(/"/g,'""')+'"',t.amount.toFixed(2),t.status,t.po,t.gl,'"'+t.prog+'"','"'+t.notes.replace(/"/g,'""')+'"'].join(',')).join('\n');
@@ -329,7 +394,7 @@ function App(){
               <span className="step-badge" style={{background:'#10b981'}}>STEP 3</span>
               <span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Process & Match</span>
             </div>
-            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Parses Excel files, cross-references with the statement, and auto-suggests GL codes.</p>
+            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Smart matching: requires <strong>both</strong> matching amount <strong>and</strong> vendor text similarity against PO descriptions.</p>
             <button className="btn" onClick={process} disabled={!canProcess}
               style={{padding:'11px 28px',fontSize:13,borderRadius:8,fontFamily:'inherit',
                 background:canProcess?'linear-gradient(135deg,#3b82f6,#8b5cf6)':'#374151',
@@ -434,7 +499,6 @@ function App(){
             )}
           </div>
           {stats.u>0&&<p style={{fontSize:11,color:'#fbbf24',marginBottom:16}}>⚠️ {stats.u} transactions still need PO assignment before export</p>}
-
           <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
             <button className="btn" onClick={exportExcel} disabled={stats.a+stats.s===0}
               style={{padding:'12px 32px',fontSize:14,borderRadius:8,fontFamily:'inherit',
