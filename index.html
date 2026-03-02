@@ -43,7 +43,6 @@
 <script type="text/babel">
 const {useState, useCallback, useRef, useMemo} = React;
 
-/* ─── Auto-suggestion rules ─── */
 const GL_RULES = [
   {p:['HEROKU','CONSTANT-CONTACT','CCI*CONSTANT','GOOGLE *GOOGLE ONE','AWS','AMAZON WEB','VERCEL','PADDLE','N8N','CLAUDE.AI','ANTHROPIC','OPENAI','CHATGPT','PRIME VIDEO','KINDLE'],po:'50-31',gl:'01-50-08050-0',n:'Application/Tech'},
   {p:['AEROMEXICO'],po:'50-09',gl:'01-50-08952-514',n:'NOAR Mexico'},
@@ -63,11 +62,10 @@ const GL_RULES = [
 
 function suggestGL(v,ref){
   const u=(v||'').toUpperCase();
-  for(const r of GL_RULES){if(r.p.some(x=>u.includes(x))){const m=ref.find(g=>g.po===r.po);return{po:r.po,gl:m?m.gl:r.gl,note:r.n};}}
-  return{po:'',gl:'',note:''};
+  for(const r of GL_RULES){if(r.p.some(x=>u.includes(x))){const m=ref.find(g=>g.po===r.po);return{po:r.po,gl:m?m.gl:r.gl,note:r.n,prog:m?m.prog:'',desc:m?m.desc:''};}}
+  return{po:'',gl:'',note:'',prog:'',desc:''};
 }
 
-/* ─── Parse statement ─── */
 function parseStmt(text){
   const lines=text.split('\n').map(l=>l.replace(/<https?:\/\/[^>]+>/g,'').trim()).filter(Boolean);
   const t=[];let i=0;
@@ -75,7 +73,8 @@ function parseStmt(text){
     if(['ROSEMBERG','ROSENBERG'].includes(lines[i]?.toUpperCase())&&i+4<lines.length){
       let c=lines[i+3].replace(/[$,]/g,'').trim();const cr=c.includes('(');c=c.replace(/[()]/g,'');
       let a=parseFloat(c)||0;if(cr)a=-a;
-      t.push({id:'t'+t.length,date:lines[i+2],amount:a,vRaw:lines[i+4],vendor:lines[i+4].replace(/\s{2,}.*/,'').trim(),status:'unmatched',po:'',gl:'',notes:''});
+      t.push({id:'t'+t.length,date:lines[i+2],amount:a,vRaw:lines[i+4],vendor:lines[i+4].replace(/\s{2,}.*/,'').trim(),
+        status:'unmatched',po:'',gl:'',prog:'',poDesc:'',notes:''});
       i+=5;continue;
     }
     i++;
@@ -83,7 +82,6 @@ function parseStmt(text){
   return t;
 }
 
-/* ─── Parse PO Excel ─── */
 function parsePO(wb,src){
   const gl=[],entries=[];
   for(const sn of wb.SheetNames){
@@ -97,17 +95,27 @@ function parsePO(wb,src){
         if(v==='NUMBER'){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){po=String(row[j]).trim();break;}}
         if(v.includes('Description:')){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){desc=String(row[j]).trim();break;}}
         if(v==='GL Coding'){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){glc=String(row[j]).trim();break;}}
-        if(v==='PROGRAM'){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){prog=String(row[j]).trim();break;}}
         if(v==='VENDOR TO BE PAID')hr=r;
+        if(v==='PROGRAM'){for(let j=c+1;j<row.length;j++){const pv=String(row[j]).trim();if(pv&&pv!=='0'){prog=pv;break;}}}
       }
     }
-    if(po&&glc)gl.push({po,desc,gl:glc,prog,src});
+    // For Camp POs, default program to CAMP
+    if(po&&glc){
+      const finalProg = src==='Camp' ? 'CAMP' : (prog||'General');
+      gl.push({po,desc,gl:glc,prog:finalProg,src});
+    }
     if(hr>=0)for(let r=hr+1;r<d.length;r++){
       const row=d[r]||[],ven=String(row[3]||'').trim(),amt=parseFloat(row[7])||0;
       if(ven&&amt!==0)entries.push({po,gl:glc,vendor:ven,desc:String(row[4]||'').trim(),amount:amt,month:String(row[5]||'').trim(),src});
     }
   }
   return{gl,entries};
+}
+
+function getPrevMonth(){
+  const d=new Date();d.setMonth(d.getMonth()-1);
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return months[d.getMonth()]+' '+d.getFullYear();
 }
 
 const SC={
@@ -117,7 +125,6 @@ const SC={
   unmatched:{bg:'#fee2e2',c:'#991b1b',l:'NEEDS PO'},
 };
 
-/* ─── Upload Box ─── */
 function UploadBox({label,icon,file,onFile}){
   const ref=useRef(null);
   const[drag,setDrag]=useState(false);
@@ -135,7 +142,6 @@ function UploadBox({label,icon,file,onFile}){
   );
 }
 
-/* ─── Main App ─── */
 function App(){
   const[tab,setTab]=useState('load');
   const[stmt,setStmt]=useState('');
@@ -170,10 +176,20 @@ function App(){
         L.push('🔄 Matching...');setLog([...L]);
         const matched=raw.map(t=>{
           const ex=ape.filter(e=>Math.abs(e.amount-t.amount)<0.02);
-          let done=false,mpo='',mgl='',mdet='';
-          for(const e of ex){if(e.vendor.toLowerCase().includes('amex')||e.vendor.toLowerCase().includes('marleny')){done=true;mpo=e.po;mgl=e.gl;mdet=e.desc+' ('+e.src+')';break;}}
+          let done=false,mpo='',mgl='',mdet='',mprog='',mdesc='';
+          for(const e of ex){if(e.vendor.toLowerCase().includes('amex')||e.vendor.toLowerCase().includes('marleny')){
+            done=true;mpo=e.po;mgl=e.gl;mdet=e.desc+' ('+e.src+')';
+            const gref=dgl.find(g=>g.po===e.po);mprog=gref?gref.prog:'';mdesc=gref?gref.desc:'';break;
+          }}
           const sg=suggestGL(t.vRaw,dgl);
-          return{...t,status:done?'done':sg.po?'suggested':'unmatched',po:done?mpo:sg.po,gl:done?mgl:sg.gl,notes:done?'Auto: '+mdet:sg.note};
+          const gref2=dgl.find(g=>g.po===(done?mpo:sg.po));
+          return{...t,
+            status:done?'done':sg.po?'suggested':'unmatched',
+            po:done?mpo:sg.po,
+            gl:done?mgl:sg.gl,
+            prog:done?mprog:(gref2?gref2.prog:''),
+            poDesc:done?mdesc:(gref2?gref2.desc:''),
+            notes:done?'Auto: '+mdet:sg.note};
         });
         setTxns(matched);
         const dn=matched.filter(x=>x.status==='done').length,sg=matched.filter(x=>x.status==='suggested').length,um=matched.filter(x=>x.status==='unmatched').length;
@@ -189,7 +205,11 @@ function App(){
     setTxns(p=>p.map(t=>{
       if(t.id!==id)return t;
       const u={...t,[f]:v};
-      if(f==='po'&&v){const r=glRef.find(g=>g.po===v);if(r){u.gl=r.gl;if(!u.notes)u.notes=r.desc;}u.status='assigned';}
+      if(f==='po'&&v){
+        const r=glRef.find(g=>g.po===v);
+        if(r){u.gl=r.gl;u.prog=r.prog;u.poDesc=r.desc;if(!u.notes)u.notes=r.desc;}
+        u.status='assigned';
+      }
       if(f==='status')u.status=v;
       return u;
     }));
@@ -199,10 +219,11 @@ function App(){
 
   const filtered=useMemo(()=>{
     let r=[...txns];
+    // CHANGE #4: Needs PO tab shows everything except 'done' (including assigned)
     if(tab==='needsPO')r=r.filter(t=>t.status!=='done');
     else if(filter==='needsPO')r=r.filter(t=>t.status==='unmatched');
     else if(filter!=='all')r=r.filter(t=>t.status===filter);
-    if(search){const s=search.toLowerCase();r=r.filter(t=>t.vendor.toLowerCase().includes(s)||t.vRaw.toLowerCase().includes(s)||t.po.toLowerCase().includes(s)||t.notes.toLowerCase().includes(s));}
+    if(search){const s=search.toLowerCase();r=r.filter(t=>t.vendor.toLowerCase().includes(s)||t.vRaw.toLowerCase().includes(s)||t.po.toLowerCase().includes(s)||t.notes.toLowerCase().includes(s)||t.prog.toLowerCase().includes(s));}
     r.sort((a,b)=>{const va=sortK==='amount'?a.amount:(a[sortK]??''),vb=sortK==='amount'?b.amount:(b[sortK]??'');return va<vb?(sortD==='asc'?-1:1):va>vb?(sortD==='asc'?1:-1):0;});
     return r;
   },[txns,filter,search,sortK,sortD,tab]);
@@ -214,19 +235,40 @@ function App(){
     return{t,d,s,u,a,ta,pend:t-d};
   },[txns]);
 
+  // CHANGE #2 & #3: Export as Excel with specific columns, then mark all as done
+  const exportExcel=useCallback(()=>{
+    const prevMonth = getPrevMonth();
+    // Build data: group doesn't matter, just list all non-done transactions
+    const toExport = txns.filter(t=>t.status==='assigned'||t.status==='suggested');
+    const wsData = [['GL Name & Program','Description',prevMonth,'','Amount']];
+    for(const t of toExport){
+      const glLabel = t.poDesc + ' - ' + t.prog + ' (' + t.gl + ')';
+      wsData.push([glLabel, t.vendor, prevMonth, '', t.amount]);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    // Column widths
+    ws['!cols']=[{wch:40},{wch:35},{wch:18},{wch:5},{wch:12}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'PO Export');
+    XLSX.writeFile(wb,'PO_Export_'+prevMonth.replace(' ','_')+'.xlsx');
+
+    // CHANGE #3: Mark all assigned/suggested as done after export
+    setTxns(p=>p.map(t=>(t.status==='assigned'||t.status==='suggested')?{...t,status:'done'}:t));
+  },[txns]);
+
+  // Also keep CSV export for full data
   const exportCSV=useCallback(()=>{
-    const h='Date,Vendor,Full Vendor,Amount,Status,PO#,GL Code,Notes\n';
-    const rows=txns.map(t=>[t.date,'"'+t.vendor+'"','"'+t.vRaw.replace(/"/g,'""')+'"',t.amount.toFixed(2),t.status,t.po,t.gl,'"'+t.notes.replace(/"/g,'""')+'"'].join(',')).join('\n');
-    const b=new Blob([h+rows],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='PO_Recon_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+    const h='Date,Vendor,Full Vendor,Amount,Status,PO#,GL Code,Program,Notes\n';
+    const rows=txns.map(t=>[t.date,'"'+t.vendor+'"','"'+t.vRaw.replace(/"/g,'""')+'"',t.amount.toFixed(2),t.status,t.po,t.gl,'"'+t.prog+'"','"'+t.notes.replace(/"/g,'""')+'"'].join(',')).join('\n');
+    const b=new Blob([h+rows],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='PO_Full_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
   },[txns]);
 
   const tSort=k=>{if(sortK===k)setSortD(d=>d==='asc'?'desc':'asc');else{setSortK(k);setSortD('asc');}};
-
   const canProcess=!busy&&(f1||f2)&&stmt.trim();
 
   return(
     <div>
-      {/* ─── HEADER ─── */}
+      {/* HEADER */}
       <div style={{background:'#111827',borderBottom:'1px solid #1f2937',padding:'14px 24px'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',maxWidth:1440,margin:'0 auto',flexWrap:'wrap',gap:10}}>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -248,7 +290,7 @@ function App(){
         </div>
       </div>
 
-      {/* ─── TABS ─── */}
+      {/* TABS */}
       <div style={{background:'#111827',borderBottom:'1px solid #1f2937',padding:'0 24px'}}>
         <div style={{display:'flex',maxWidth:1440,margin:'0 auto'}}>
           {[['load','📂 Load Data'],['review','📋 Review'],['needsPO','⚠️ Needs PO'],['export','📊 Export']].map(([k,l])=>
@@ -261,29 +303,27 @@ function App(){
 
       <div style={{maxWidth:1440,margin:'0 auto',padding:'20px 24px'}}>
 
-        {/* ═══ LOAD ═══ */}
+        {/* LOAD */}
         {tab==='load'&&<div style={{display:'grid',gap:16}}>
           <div className="card">
             <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}>
               <span className="step-badge" style={{background:'#3b82f6'}}>STEP 1</span>
               <span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Upload PO Files</span>
             </div>
-            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Upload your latest Hebraica and Camp PO Excel files. The system extracts all PO numbers, GL codes, and existing entries.</p>
+            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Upload your latest Hebraica and Camp PO Excel files.</p>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
               <UploadBox label="Hebraica 2026.xlsx" icon="📗" file={f1} onFile={setF1}/>
               <UploadBox label="Camp PO 2026.xlsx" icon="📘" file={f2} onFile={setF2}/>
             </div>
           </div>
-
           <div className="card">
             <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}>
               <span className="step-badge" style={{background:'#8b5cf6'}}>STEP 2</span>
               <span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Paste Statement</span>
             </div>
-            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Copy the full text from Lenny's email (Visa or AMEX) and paste it below.</p>
+            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Copy the full text from Lenny's email and paste it below.</p>
             <textarea value={stmt} onChange={e=>setStmt(e.target.value)} placeholder={"Paste the statement here...\n\nROSEMBERG\nMARLENY\n02/28/2026\n$51.00\nUBER EATS    HTTPS://HELP.UBER. CA"} style={{height:180}}/>
           </div>
-
           <div className="card">
             <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}>
               <span className="step-badge" style={{background:'#10b981'}}>STEP 3</span>
@@ -302,7 +342,7 @@ function App(){
           </div>
         </div>}
 
-        {/* ═══ REVIEW & NEEDS PO ═══ */}
+        {/* REVIEW & NEEDS PO */}
         {(tab==='review'||tab==='needsPO')&&<div>
           <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
             <input type="text" placeholder="🔍 Search..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:200,padding:'6px 10px',fontSize:12}}/>
@@ -321,7 +361,7 @@ function App(){
           <div style={{overflow:'auto',borderRadius:8,border:'1px solid #1f2937',background:'#111827',maxHeight:'calc(100vh - 240px)'}}>
             <table>
               <thead><tr>
-                {[['date','Date',80],['vendor','Vendor',185],['amount','Amount',80],['status','Status',88],['po','PO#',158],['gl','GL Code',130],['notes','Notes',175],['_','',55]].map(([k,l,w])=>
+                {[['date','Date',78],['vendor','Vendor',170],['amount','Amount',78],['status','Status',85],['po','PO#',150],['gl','GL Code',120],['prog','Program',100],['notes','Notes',150],['_','',55]].map(([k,l,w])=>
                   <th key={k} onClick={()=>k!=='_'&&tSort(k)} style={{width:w,textAlign:k==='amount'?'right':'left',cursor:k==='_'?'default':'pointer'}}>
                     {l}{sortK===k?(sortD==='asc'?' ↑':' ↓'):''}
                   </th>
@@ -331,7 +371,7 @@ function App(){
                 {filtered.map(t=>{const sc=SC[t.status]||SC.unmatched;return(
                   <tr key={t.id} className="rh" style={{borderBottom:'1px solid #0c111b'}}>
                     <td className="mono" style={{fontSize:10,color:'#9ca3af'}}>{t.date}</td>
-                    <td style={{color:'#e5e7eb',maxWidth:185,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={t.vRaw}>{t.vendor}</td>
+                    <td style={{color:'#e5e7eb',maxWidth:170,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={t.vRaw}>{t.vendor}</td>
                     <td className="mono" style={{textAlign:'right',fontWeight:600,fontSize:11,color:t.amount<0?'#f87171':'#34d399'}}>
                       {t.amount<0?'('+Math.abs(t.amount).toFixed(2)+')':'$'+t.amount.toFixed(2)}
                     </td>
@@ -340,10 +380,11 @@ function App(){
                       {t.status==='done'?<span className="mono" style={{fontSize:10.5,color:'#34d399',padding:'0 3px'}}>{t.po}</span>:
                       <select value={t.po} onChange={e=>update(t.id,'po',e.target.value)}>
                         <option value="">-- PO --</option>
-                        {glRef.map(g=><option key={g.po} value={g.po}>{g.po+' · '+g.desc}</option>)}
+                        {glRef.map(g=><option key={g.po} value={g.po}>{g.po+' · '+g.desc+' ('+g.prog+')'}</option>)}
                       </select>}
                     </td>
                     <td className="mono" style={{fontSize:9,color:'#6b7280'}}>{t.gl}</td>
+                    <td style={{fontSize:10,color:'#a78bfa',fontWeight:500}}>{t.prog}</td>
                     <td style={{padding:'4px 5px'}}>
                       {t.status==='done'?<span style={{fontSize:10,color:'#9ca3af'}}>{t.notes}</span>:
                       <input type="text" value={t.notes} onChange={e=>update(t.id,'notes',e.target.value)} placeholder="Note..." style={{fontSize:10.5}}/>}
@@ -356,7 +397,7 @@ function App(){
                     </td>
                   </tr>
                 );})}
-                {filtered.length===0&&<tr><td colSpan={8} style={{padding:32,textAlign:'center',color:'#6b7280'}}>
+                {filtered.length===0&&<tr><td colSpan={9} style={{padding:32,textAlign:'center',color:'#6b7280'}}>
                   {txns.length===0?'No data loaded. Go to Load Data tab.':'No matches for this filter.'}
                 </td></tr>}
               </tbody>
@@ -365,35 +406,48 @@ function App(){
 
           {tab==='needsPO'&&glRef.length>0&&<details style={{marginTop:12}}>
             <summary>📖 GL Reference ({glRef.length} codes)</summary>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:3,marginTop:6}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:3,marginTop:6}}>
               {glRef.map((g,i)=><div key={i} style={{padding:'4px 8px',background:'#111827',borderRadius:4,border:'1px solid #1f2937',fontSize:10,display:'flex',gap:6}}>
                 <span className="mono" style={{color:'#60a5fa',fontWeight:600,minWidth:40}}>{g.po}</span>
                 <span style={{color:'#d1d5db',flex:1}}>{g.desc}</span>
+                <span style={{color:'#a78bfa',fontSize:9,fontWeight:600}}>{g.prog}</span>
                 <span className="mono" style={{color:'#6b7280',fontSize:9}}>{g.gl}</span>
               </div>)}
             </div>
           </details>}
         </div>}
 
-        {/* ═══ EXPORT ═══ */}
+        {/* EXPORT */}
         {tab==='export'&&<div className="card" style={{padding:40,textAlign:'center'}}>
           <div style={{fontSize:44,marginBottom:10}}>📊</div>
           <h3 style={{fontSize:19,fontWeight:700,color:'#f9fafb',marginBottom:6}}>Export Reconciliation</h3>
-          <p style={{fontSize:12,color:'#9ca3af',maxWidth:420,margin:'0 auto 24px'}}>Download CSV for Google Sheets with all transactions, POs, GL codes, and status.</p>
+          <p style={{fontSize:12,color:'#9ca3af',maxWidth:460,margin:'0 auto 24px'}}>
+            Download the PO Excel with GL Name & Program, Description, Month, and Amount.
+            <br/>Exporting will mark all assigned/suggested as <strong style={{color:'#34d399'}}>DONE</strong>.
+          </p>
           <div style={{display:'flex',gap:14,justifyContent:'center',marginBottom:24,flexWrap:'wrap'}}>
-            {[['TOTAL',stats.t,'#9ca3af'],['DONE',stats.d,'#34d399'],['PENDING',stats.pend,'#f87171']].map(([l,v,c])=>
-              <div key={l} style={{padding:'12px 20px',background:'#0c111b',borderRadius:8,minWidth:90}}>
+            {[['TOTAL',stats.t,'#9ca3af'],['DONE',stats.d,'#34d399'],['READY TO EXPORT',stats.a+stats.s,'#60a5fa'],['STILL NEEDS PO',stats.u,'#f87171']].map(([l,v,c])=>
+              <div key={l} style={{padding:'12px 20px',background:'#0c111b',borderRadius:8,minWidth:100}}>
                 <div style={{fontSize:22,fontWeight:700,color:c}}>{v}</div>
                 <div style={{fontSize:9,color:'#6b7280',marginTop:2,fontWeight:600,letterSpacing:.5}}>{l}</div>
               </div>
             )}
           </div>
-          {stats.pend>0&&<p style={{fontSize:11,color:'#fbbf24',marginBottom:16}}>⚠️ {stats.pend} transactions still pending</p>}
-          <button className="btn" onClick={exportCSV} disabled={!stats.t}
-            style={{padding:'12px 32px',fontSize:14,borderRadius:8,fontFamily:'inherit',
-              background:stats.t?'linear-gradient(135deg,#3b82f6,#8b5cf6)':'#374151',color:stats.t?'#fff':'#6b7280'}}>
-            ⬇ Download CSV
-          </button>
+          {stats.u>0&&<p style={{fontSize:11,color:'#fbbf24',marginBottom:16}}>⚠️ {stats.u} transactions still need PO assignment before export</p>}
+
+          <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
+            <button className="btn" onClick={exportExcel} disabled={stats.a+stats.s===0}
+              style={{padding:'12px 32px',fontSize:14,borderRadius:8,fontFamily:'inherit',
+                background:(stats.a+stats.s>0)?'linear-gradient(135deg,#3b82f6,#8b5cf6)':'#374151',
+                color:(stats.a+stats.s>0)?'#fff':'#6b7280'}}>
+              ⬇ Download PO Excel
+            </button>
+            <button className="btn" onClick={exportCSV} disabled={!stats.t}
+              style={{padding:'12px 24px',fontSize:12,borderRadius:8,fontFamily:'inherit',
+                background:'#374151',color:stats.t?'#e5e7eb':'#6b7280'}}>
+              📋 Full CSV (all data)
+            </button>
+          </div>
         </div>}
 
       </div>
