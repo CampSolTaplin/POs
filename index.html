@@ -10,81 +10,64 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'DM Sans',system-ui,sans-serif;background:#0c111b;color:#e2e8f0;min-height:100vh}
-  ::-webkit-scrollbar{width:5px;height:5px}
-  ::-webkit-scrollbar-track{background:#1e293b}
-  ::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}
-  .mono{font-family:'JetBrains Mono',monospace}
-  .rh:hover{background:#172033!important}
-  .btn{border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;transition:all .12s}
-  .btn:hover{filter:brightness(1.15)}
-  .btn:active{transform:scale(.98)}
-  .card{background:#111827;border-radius:10px;padding:24px;border:1px solid #1f2937}
-  .step-badge{color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block}
-  .upload-box{border:2px dashed #475569;border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;background:#0c111b;transition:all .2s}
-  .upload-box:hover{border-color:#3b82f6;background:rgba(59,130,246,0.05)}
-  .upload-box.has-file{border-color:#4ade80;background:rgba(74,222,128,0.04)}
-  .upload-box.dragging{border-color:#3b82f6;background:rgba(59,130,246,0.08)}
-  table{width:100%;border-collapse:collapse}
-  th{padding:8px;text-align:left;color:#9ca3af;font-weight:600;font-size:10px;letter-spacing:.4px;
-    position:sticky;top:0;background:#1f2937;z-index:1;user-select:none;cursor:pointer;white-space:nowrap}
-  td{padding:7px 8px}
-  .status-badge{display:inline-block;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700}
-  .filter-btn{padding:5px 11px;font-size:10.5px;border-radius:4px;background:transparent;color:#6b7280;border:1px solid transparent;font-family:inherit}
-  .filter-btn.active{background:#1f2937;color:#e5e7eb;border-color:#374151}
-  input[type=text]{font-family:inherit;width:100%;padding:4px 5px;font-size:10px;border-radius:4px;background:#0c111b;border:1px solid #374151;color:#e5e7eb}
-  textarea{font-family:'JetBrains Mono',monospace;width:100%;padding:12px;font-size:11px;background:#0c111b;border:1px solid #1f2937;border-radius:8px;color:#d1d5db;resize:vertical;line-height:1.6}
-  details summary{cursor:pointer;font-size:11.5px;font-weight:600;color:#9ca3af;padding:5px 0}
-  .po-search-wrap{position:relative}
-  .po-search-input{font-family:inherit;width:100%;padding:4px 5px;font-size:10px;border-radius:4px;background:#0c111b;border:1px solid #374151;color:#e5e7eb}
-  .po-search-input:focus{border-color:#3b82f6;outline:none}
-  .po-dropdown{position:absolute;top:100%;left:0;right:0;background:#1a2332;border:1px solid #374151;border-radius:4px;max-height:200px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.5)}
-  .po-option{padding:5px 8px;cursor:pointer;font-size:10px;border-bottom:1px solid #0c111b;display:flex;gap:6px;align-items:center}
-  .po-option:hover{background:#2d3a4f}
-  .po-option.selected{background:#1e3a5f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;background:#0c111b;color:#e2e8f0;min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#1e293b}
+::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}
+.mono{font-family:'JetBrains Mono',monospace}
+.rh:hover{background:#172033!important}
+.btn{border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;transition:all .12s}
+.btn:hover{filter:brightness(1.15)}
+.btn:active{transform:scale(.98)}
+.card{background:#111827;border-radius:10px;padding:24px;border:1px solid #1f2937}
+.step-badge{color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block}
+.upload-box{border:2px dashed #475569;border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;background:#0c111b;transition:all .2s}
+.upload-box:hover{border-color:#3b82f6;background:rgba(59,130,246,0.05)}
+.upload-box.has-file{border-color:#4ade80;background:rgba(74,222,128,0.04)}
+table{width:100%;border-collapse:collapse}
+th{padding:8px;text-align:left;color:#9ca3af;font-weight:600;font-size:10px;letter-spacing:.4px;position:sticky;top:0;background:#1f2937;z-index:1;user-select:none;cursor:pointer;white-space:nowrap}
+td{padding:7px 8px}
+.status-badge{display:inline-block;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700}
+.filter-btn{padding:5px 11px;font-size:10.5px;border-radius:4px;background:transparent;color:#6b7280;border:1px solid transparent;font-family:inherit}
+.filter-btn.active{background:#1f2937;color:#e5e7eb;border-color:#374151}
+input[type=text]{font-family:inherit;width:100%;padding:4px 5px;font-size:10px;border-radius:4px;background:#0c111b;border:1px solid #374151;color:#e5e7eb}
+textarea{font-family:'JetBrains Mono',monospace;width:100%;padding:12px;font-size:11px;background:#0c111b;border:1px solid #1f2937;border-radius:8px;color:#d1d5db;resize:vertical;line-height:1.6}
+details summary{cursor:pointer;font-size:11.5px;font-weight:600;color:#9ca3af;padding:5px 0}
+.psr{position:relative}
+.psi{font-family:inherit;width:100%;padding:4px 5px;font-size:10px;border-radius:4px;background:#0c111b;border:1px solid #374151;color:#e5e7eb}
+.psi:focus{border-color:#3b82f6;outline:none}
+.pdd{position:absolute;top:100%;left:0;right:0;background:#1a2332;border:1px solid #374151;border-radius:4px;max-height:200px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.pop{padding:5px 8px;cursor:pointer;font-size:10px;border-bottom:1px solid #0c111b;display:flex;gap:6px;align-items:center}
+.pop:hover{background:#2d3a4f}
+.pop.sel{background:#1e3a5f}
+.msel{font-family:inherit;padding:5px 10px;font-size:12px;border-radius:6px;background:#0c111b;border:1px solid #374151;color:#e5e7eb}
+.sbar{background:linear-gradient(180deg,#111827,#0f172a);border-bottom:1px solid #1f2937;padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sb{padding:3px 8px;font-size:9px;border-radius:3px;font-family:inherit}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState, useCallback, useRef, useMemo, useEffect} = React;
+const {useState,useCallback,useRef,useMemo,useEffect} = React;
 
-/* ─── TEXT SIMILARITY ─── */
-const NOISE = new Set(['the','and','a','an','of','in','at','to','for','on','by','with','from','or','is','it','its',
-  'http','https','www','com','fl','ca','ny','ma','wa','ct','tx','nj','mn','co','il','pa',
-  'amzn','bill','pay','helppay','no','rec','norec','nan','undefined','null',
-  '000','0000','00000','0000015','888','855','800','877']);
+const PFX='heb_recon_';
+function sGet(k){try{const v=localStorage.getItem(PFX+k);return v?JSON.parse(v):null}catch(e){return null}}
+function sSet(k,d){try{localStorage.setItem(PFX+k,JSON.stringify(d))}catch(e){}}
+function sDel(k){try{localStorage.removeItem(PFX+k)}catch(e){}}
+function sList(){const r=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(PFX)){const key=k.slice(PFX.length);const d=sGet(key);if(d)r.push({key,closed:!!d.closed,n:d.txns?.length||0})}}}catch(e){}return r.sort((a,b)=>b.key.localeCompare(a.key))}
 
-function tokenize(s){
-  return (s||'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').split(/\s+/)
-    .filter(w=>w.length>1&&!NOISE.has(w.toLowerCase())&&!/^\d{1,3}$/.test(w));
-}
+const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function defM(){const d=new Date();d.setMonth(d.getMonth()-1);return{m:d.getMonth(),y:d.getFullYear()}}
+function mK(m,y){return y+'-'+String(m+1).padStart(2,'0')}
+function mL(m,y){return MN[m]+' '+y}
 
-function textSimilarity(stmtVendor, poDesc){
-  const tA=tokenize(stmtVendor), tB=tokenize(poDesc);
-  if(!tA.length||!tB.length)return 0;
-  let hits=0;
-  for(const a of tA){
-    for(const b of tB){
-      if(a===b){hits+=2;continue;}
-      if(a.length>=3&&b.length>=3){if(a.includes(b)||b.includes(a)){hits+=1.5;continue;}}
-      if(a.length>=4&&b.length>=4&&a.slice(0,4)===b.slice(0,4)){hits+=1;}
-    }
-  }
-  const maxPossible=Math.max(tA.length,tB.length)*2;
-  return maxPossible>0?hits/maxPossible:0;
-}
+const NOISE=new Set('the and a an of in at to for on by with from or is it its http https www com fl ca ny ma wa ct tx nj mn co il pa amzn bill pay helppay no rec norec nan undefined null 000 0000 00000 0000015 888 855 800 877'.split(' '));
+function tok(s){return(s||'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>1&&!NOISE.has(w.toLowerCase())&&!/^\d{1,3}$/.test(w))}
+function tSim(a,b){const tA=tok(a),tB=tok(b);if(!tA.length||!tB.length)return 0;let h=0;for(const x of tA)for(const y of tB){if(x===y){h+=2;continue}if(x.length>=3&&y.length>=3&&(x.includes(y)||y.includes(x))){h+=1.5;continue}if(x.length>=4&&y.length>=4&&x.slice(0,4)===y.slice(0,4))h+=1}return h/(Math.max(tA.length,tB.length)*2)}
+function isCard(v){const u=(v||'').toUpperCase();return(u.includes('AMEX')&&u.includes('MARLEN'))||u.includes('MARLENY AMEX')||u.includes('AMEX MARLENY')||u.includes('MARLENY AMEA')||/^AMEX\s/i.test(u)||u.includes('MARLENY VISA')||u.includes('VISA MARLENY')}
 
-function isCardEntry(vendor){
-  const u=(vendor||'').toUpperCase();
-  return (u.includes('AMEX')&&u.includes('MARLEN')) || u.includes('MARLENY AMEX') ||
-    u.includes('AMEX MARLENY') || u.includes('MARLENY AMEA') || /^AMEX\s/i.test(u) ||
-    u.includes('MARLENY VISA') || u.includes('VISA MARLENY');
-}
-
-/* ─── ONLY truly unique, unambiguous vendor rules ─── */
-const GL_RULES = [
+const GLR=[
   {p:['HEROKU'],po:'50-31',n:'Application'},
   {p:['CCI*CONSTANT','CONSTANT-CONTACT','CONSTANTCONTACT'],po:'50-31',n:'Application'},
   {p:['GOOGLE *GOOGLE ONE'],po:'50-31',n:'Application'},
@@ -96,455 +79,153 @@ const GL_RULES = [
   {p:['AMERICAN AIRLINES'],po:'50-12',n:'Pre-SOM Conference'},
   {p:['CAUSEMATCH'],po:'50-31',n:'Application'},
 ];
+function sugGL(v,ref){const u=(v||'').toUpperCase();for(const r of GLR){if(r.p.some(x=>u.includes(x))){const m=ref.find(g=>g.po===r.po);return{po:r.po,gl:m?m.gl:'',note:r.n,prog:m?m.prog:'',desc:m?m.desc:''}}}return{po:'',gl:'',note:'',prog:'',desc:''}}
 
-function suggestGL(v,ref){
-  const u=(v||'').toUpperCase();
-  for(const r of GL_RULES){if(r.p.some(x=>u.includes(x))){const m=ref.find(g=>g.po===r.po);return{po:r.po,gl:m?m.gl:'',note:r.n,prog:m?m.prog:'',desc:m?m.desc:''};}}
-  return{po:'',gl:'',note:'',prog:'',desc:''};
-}
+function parseStmt(text){const lines=text.split('\n').map(l=>l.replace(/<https?:\/\/[^>]+>/g,'').trim()).filter(Boolean);const t=[];let i=0;while(i<lines.length){if(['ROSEMBERG','ROSENBERG'].includes(lines[i]?.toUpperCase())&&i+4<lines.length){let c=lines[i+3].replace(/[$,]/g,'').trim();const cr=c.includes('(');c=c.replace(/[()]/g,'');let a=parseFloat(c)||0;if(cr)a=-a;t.push({id:'t'+t.length,date:lines[i+2],amount:a,vRaw:lines[i+4],vendor:lines[i+4].replace(/\s{2,}.*/,'').trim(),status:'unmatched',po:'',gl:'',prog:'',poDesc:'',notes:''});i+=5;continue}i++}return t}
 
-function parseStmt(text){
-  const lines=text.split('\n').map(l=>l.replace(/<https?:\/\/[^>]+>/g,'').trim()).filter(Boolean);
-  const t=[];let i=0;
-  while(i<lines.length){
-    if(['ROSEMBERG','ROSENBERG'].includes(lines[i]?.toUpperCase())&&i+4<lines.length){
-      let c=lines[i+3].replace(/[$,]/g,'').trim();const cr=c.includes('(');c=c.replace(/[()]/g,'');
-      let a=parseFloat(c)||0;if(cr)a=-a;
-      t.push({id:'t'+t.length,date:lines[i+2],amount:a,vRaw:lines[i+4],vendor:lines[i+4].replace(/\s{2,}.*/,'').trim(),
-        status:'unmatched',po:'',gl:'',prog:'',poDesc:'',notes:''});
-      i+=5;continue;
-    }
-    i++;
-  }
-  return t;
-}
+function parsePO(wb,src){const gl=[],en=[];for(const sn of wb.SheetNames){if(sn==='instructions'||sn==='PO Req form')continue;const d=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});let po='',desc='',glc='',prog='',hr=-1;for(let r=0;r<Math.min(10,d.length);r++){const row=d[r]||[];for(let c=0;c<row.length;c++){const v=String(row[c]||'').trim();if(v==='NUMBER'){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){po=String(row[j]).trim();break}}if(v.includes('Description:')){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){desc=String(row[j]).trim();break}}if(v==='GL Coding'){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){glc=String(row[j]).trim();break}}if(v==='VENDOR TO BE PAID')hr=r;if(v==='PROGRAM'){for(let j=c+1;j<row.length;j++){const pv=String(row[j]).trim();if(pv&&pv!=='0'){prog=pv;break}}}}}const fp=src==='Camp'?'CAMP':(prog||'General');if(po&&glc)gl.push({po,desc,gl:glc,prog:fp,src});if(hr>=0)for(let r=hr+1;r<d.length;r++){const row=d[r]||[],ven=String(row[3]||'').trim(),amt=parseFloat(row[7])||0,ed=String(row[4]||'').trim();if(ven&&amt!==0)en.push({po,gl:glc,vendor:ven,desc:ed,amount:amt,src})}}return{gl,entries:en}}
 
-function parsePO(wb,src){
-  const gl=[],entries=[];
-  for(const sn of wb.SheetNames){
-    if(sn==='instructions'||sn==='PO Req form')continue;
-    const d=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
-    let po='',desc='',glc='',prog='',hr=-1;
-    for(let r=0;r<Math.min(10,d.length);r++){
-      const row=d[r]||[];
-      for(let c=0;c<row.length;c++){
-        const v=String(row[c]||'').trim();
-        if(v==='NUMBER'){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){po=String(row[j]).trim();break;}}
-        if(v.includes('Description:')){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){desc=String(row[j]).trim();break;}}
-        if(v==='GL Coding'){for(let j=c+1;j<row.length;j++)if(String(row[j]).trim()){glc=String(row[j]).trim();break;}}
-        if(v==='VENDOR TO BE PAID')hr=r;
-        if(v==='PROGRAM'){for(let j=c+1;j<row.length;j++){const pv=String(row[j]).trim();if(pv&&pv!=='0'){prog=pv;break;}}}
-      }
-    }
-    const finalProg = src==='Camp' ? 'CAMP' : (prog||'General');
-    if(po&&glc)gl.push({po,desc,gl:glc,prog:finalProg,src});
-    if(hr>=0)for(let r=hr+1;r<d.length;r++){
-      const row=d[r]||[],ven=String(row[3]||'').trim(),amt=parseFloat(row[7])||0;
-      const edesc=String(row[4]||'').trim();
-      if(ven&&amt!==0)entries.push({po,gl:glc,vendor:ven,desc:edesc,amount:amt,month:String(row[5]||'').trim(),src});
-    }
-  }
-  return{gl,entries};
-}
+const SC={done:{bg:'#dcfce7',c:'#166534',l:'DONE ✓'},assigned:{bg:'#dbeafe',c:'#1e40af',l:'ASSIGNED'},suggested:{bg:'#fef9c3',c:'#854d0e',l:'SUGGESTED'},unmatched:{bg:'#fee2e2',c:'#991b1b',l:'NEEDS PO'}};
 
-function getPrevMonth(){
-  const d=new Date();d.setMonth(d.getMonth()-1);
-  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  return months[d.getMonth()]+' '+d.getFullYear();
-}
+function POSel({value,glRef,onChange}){const[open,setOpen]=useState(false);const[q,setQ]=useState('');const wr=useRef(null);useEffect(()=>{const h=e=>{if(wr.current&&!wr.current.contains(e.target))setOpen(false)};document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h)},[]);const fl=useMemo(()=>{if(!q.trim())return glRef;const s=q.toLowerCase();return glRef.filter(g=>g.po.toLowerCase().includes(s)||g.desc.toLowerCase().includes(s)||g.prog.toLowerCase().includes(s)||g.gl.toLowerCase().includes(s))},[q,glRef]);const sel=glRef.find(g=>g.po===value);return(<div className="psr" ref={wr}><input className="psi" placeholder="Search PO..." value={open?q:(sel?sel.po+' · '+sel.desc:'')} onFocus={()=>{setOpen(true);setQ('')}} onChange={e=>setQ(e.target.value)}/>{open&&<div className="pdd"><div style={{padding:'4px 8px',borderBottom:'1px solid #374151'}}><input type="text" value={q} onChange={e=>setQ(e.target.value)} placeholder="🔍 Type to filter..." autoFocus style={{width:'100%',padding:'4px 6px',fontSize:10,background:'#0c111b',border:'1px solid #374151',borderRadius:3,color:'#e5e7eb'}}/></div>{value&&<div className="pop" style={{color:'#f87171',fontSize:9}} onClick={()=>{onChange('');setOpen(false);setQ('')}}>✕ Clear</div>}{fl.length===0&&<div style={{padding:8,fontSize:10,color:'#6b7280',textAlign:'center'}}>No matches</div>}{fl.map(g=>(<div key={g.po} className={'pop'+(g.po===value?' sel':'')} onClick={()=>{onChange(g.po);setOpen(false);setQ('')}}><span className="mono" style={{color:'#60a5fa',fontWeight:600,minWidth:38,fontSize:10}}>{g.po}</span><span style={{color:'#d1d5db',flex:1,fontSize:10,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{g.desc}</span><span style={{color:'#a78bfa',fontSize:9,fontWeight:600}}>{g.prog}</span></div>))}</div>}</div>)}
 
-const SC={
-  done:{bg:'#dcfce7',c:'#166534',l:'DONE ✓'},
-  assigned:{bg:'#dbeafe',c:'#1e40af',l:'ASSIGNED'},
-  suggested:{bg:'#fef9c3',c:'#854d0e',l:'SUGGESTED'},
-  unmatched:{bg:'#fee2e2',c:'#991b1b',l:'NEEDS PO'},
-};
-
-/* ─── Searchable PO Dropdown ─── */
-function POSelect({value, glRef, onChange}){
-  const[open,setOpen]=useState(false);
-  const[q,setQ]=useState('');
-  const wrapRef=useRef(null);
-
-  useEffect(()=>{
-    const handler=e=>{if(wrapRef.current&&!wrapRef.current.contains(e.target))setOpen(false)};
-    document.addEventListener('mousedown',handler);
-    return()=>document.removeEventListener('mousedown',handler);
-  },[]);
-
-  const filtered=useMemo(()=>{
-    if(!q.trim())return glRef;
-    const s=q.toLowerCase();
-    return glRef.filter(g=>
-      g.po.toLowerCase().includes(s)||
-      g.desc.toLowerCase().includes(s)||
-      g.prog.toLowerCase().includes(s)||
-      g.gl.toLowerCase().includes(s)
-    );
-  },[q,glRef]);
-
-  const selected=glRef.find(g=>g.po===value);
-  const displayText=selected?selected.po+' · '+selected.desc:'';
-
-  return(
-    <div className="po-search-wrap" ref={wrapRef}>
-      <input
-        className="po-search-input"
-        placeholder="Search PO..."
-        value={open?q:displayText}
-        onFocus={()=>{setOpen(true);setQ('');}}
-        onChange={e=>setQ(e.target.value)}
-      />
-      {open&&<div className="po-dropdown">
-        <div style={{padding:'4px 8px',borderBottom:'1px solid #374151'}}>
-          <input type="text" value={q} onChange={e=>setQ(e.target.value)} placeholder="🔍 Type to filter..." autoFocus
-            style={{width:'100%',padding:'4px 6px',fontSize:10,background:'#0c111b',border:'1px solid #374151',borderRadius:3,color:'#e5e7eb'}}/>
-        </div>
-        {value&&<div className="po-option" style={{color:'#f87171',fontSize:9}} onClick={()=>{onChange('');setOpen(false);setQ('');}}>
-          ✕ Clear selection
-        </div>}
-        {filtered.length===0&&<div style={{padding:8,fontSize:10,color:'#6b7280',textAlign:'center'}}>No matches</div>}
-        {filtered.map(g=>(
-          <div key={g.po} className={'po-option'+(g.po===value?' selected':'')}
-            onClick={()=>{onChange(g.po);setOpen(false);setQ('');}}>
-            <span className="mono" style={{color:'#60a5fa',fontWeight:600,minWidth:38,fontSize:10}}>{g.po}</span>
-            <span style={{color:'#d1d5db',flex:1,fontSize:10}}>{g.desc}</span>
-            <span style={{color:'#a78bfa',fontSize:9,fontWeight:600}}>{g.prog}</span>
-          </div>
-        ))}
-      </div>}
-    </div>
-  );
-}
-
-function UploadBox({label,icon,file,onFile}){
-  const ref=useRef(null);
-  const[drag,setDrag]=useState(false);
-  const cls='upload-box'+(file?' has-file':'')+(drag?' dragging':'');
-  return(
-    <div className={cls}
-      onDragOver={e=>{e.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)}
-      onDrop={e=>{e.preventDefault();setDrag(false);if(e.dataTransfer.files[0])onFile(e.dataTransfer.files[0])}}
-      onClick={()=>ref.current?.click()}>
-      <input ref={ref} type="file" accept=".xlsx,.xls" style={{display:'none'}} onChange={e=>e.target.files[0]&&onFile(e.target.files[0])} />
-      <div style={{fontSize:36,marginBottom:8}}>{file?'✅':icon}</div>
-      <div style={{fontSize:13,fontWeight:700,color:file?'#4ade80':'#e2e8f0'}}>{file?file.name:label}</div>
-      <div style={{fontSize:11,color:'#6b7280',marginTop:4}}>{file?Math.round(file.size/1024)+' KB loaded':'Drop file or click'}</div>
-    </div>
-  );
-}
+function UpBox({label,icon,file,onFile}){const ref=useRef(null);return(<div className={'upload-box'+(file?' has-file':'')} onClick={()=>ref.current?.click()}><input ref={ref} type="file" accept=".xlsx,.xls" style={{display:'none'}} onChange={e=>e.target.files[0]&&onFile(e.target.files[0])}/><div style={{fontSize:36,marginBottom:8}}>{file?'✅':icon}</div><div style={{fontSize:13,fontWeight:700,color:file?'#4ade80':'#e2e8f0'}}>{file?file.name:label}</div><div style={{fontSize:11,color:'#6b7280',marginTop:4}}>{file?Math.round(file.size/1024)+' KB':'Drop or click'}</div></div>)}
 
 function App(){
-  const[tab,setTab]=useState('load');
-  const[stmt,setStmt]=useState('');
-  const[f1,setF1]=useState(null);
-  const[f2,setF2]=useState(null);
-  const[txns,setTxns]=useState([]);
-  const[glRef,setGlRef]=useState([]);
-  const[busy,setBusy]=useState(false);
-  const[log,setLog]=useState([]);
-  const[filter,setFilter]=useState('all');
-  const[search,setSearch]=useState('');
-  const[sortK,setSortK]=useState('date');
-  const[sortD,setSortD]=useState('desc');
+  const dm=defM();
+  const[sM,setSM]=useState(dm.m);const[sY,setSY]=useState(dm.y);
+  const[tab,setTab]=useState('load');const[stmt,setStmt]=useState('');
+  const[f1,setF1]=useState(null);const[f2,setF2]=useState(null);
+  const[txns,setTxns]=useState([]);const[glRef,setGlRef]=useState([]);
+  const[busy,setBusy]=useState(false);const[log,setLog]=useState([]);
+  const[flt,setFlt]=useState('all');const[srch,setSrch]=useState('');
+  const[sK,setSK]=useState('date');const[sD,setSD]=useState('desc');
+  const[closed,setClosed]=useState(false);const[saved,setSaved]=useState('');
+  const[sess,setSess]=useState([]);const tmr=useRef(null);
+  const sk=mK(sM,sY);
 
-  const readXL=useCallback(f=>new Promise((ok,no)=>{
-    const r=new FileReader();
-    r.onload=e=>{try{ok(XLSX.read(new Uint8Array(e.target.result),{type:'array'}))}catch(err){no(err)}};
-    r.onerror=no;r.readAsArrayBuffer(f);
-  }),[]);
+  useEffect(()=>{const d=sGet(sk);if(d){setTxns(d.txns||[]);setGlRef(d.glRef||[]);setStmt(d.stmt||'');setClosed(!!d.closed);setLog(d.closed?['📦 Month closed.']:[]);setTab(d.txns?.length?'review':'load');setSaved(d.savedAt||'')}else{setTxns([]);setGlRef([]);setStmt('');setClosed(false);setLog([]);setTab('load');setSaved('')}setF1(null);setF2(null);setFlt('all');setSrch('');setSess(sList())},[sk]);
 
-  const process=useCallback(async()=>{
-    setBusy(true);const L=[];let agl=[],ape=[];
-    try{
-      if(f1){L.push('📖 Reading Hebraica...');setLog([...L]);const wb=await readXL(f1);const r=parsePO(wb,'Hebraica');agl.push(...r.gl);ape.push(...r.entries);L.push('  ✅ '+r.gl.length+' POs, '+r.entries.length+' entries');setLog([...L]);}
-      if(f2){L.push('📖 Reading Camp...');setLog([...L]);const wb=await readXL(f2);const r=parsePO(wb,'Camp');agl.push(...r.gl);ape.push(...r.entries);L.push('  ✅ '+r.gl.length+' POs, '+r.entries.length+' entries');setLog([...L]);}
-      const m=new Map();agl.forEach(g=>{if(!m.has(g.po))m.set(g.po,g)});
-      const dgl=Array.from(m.values()).sort((a,b)=>parseFloat(a.po.replace('-','.'))-parseFloat(b.po.replace('-','.')));
-      setGlRef(dgl);
-      if(stmt.trim()){
-        L.push('📧 Parsing statement...');setLog([...L]);
-        const raw=parseStmt(stmt);L.push('  '+raw.length+' transactions');
-        L.push('🔄 Smart matching (amount + text)...');setLog([...L]);
+  useEffect(()=>{if(tmr.current)clearTimeout(tmr.current);if(!txns.length&&!glRef.length&&!stmt)return;tmr.current=setTimeout(()=>{const now=new Date().toLocaleString();sSet(sk,{txns,glRef,stmt,closed,savedAt:now});setSaved(now);setSess(sList())},800);return()=>{if(tmr.current)clearTimeout(tmr.current)}},[txns,glRef,stmt,closed,sk]);
 
-        const matched=raw.map(t=>{
-          const amtMatches=ape.filter(e=>Math.abs(e.amount-t.amount)<0.02);
-          let bestMatch=null, bestScore=0;
+  const readXL=useCallback(f=>new Promise((ok,no)=>{const r=new FileReader();r.onload=e=>{try{ok(XLSX.read(new Uint8Array(e.target.result),{type:'array'}))}catch(err){no(err)}};r.onerror=no;r.readAsArrayBuffer(f)}),[]);
 
-          for(const e of amtMatches){
-            if(!isCardEntry(e.vendor))continue;
-            const score=textSimilarity(t.vRaw, e.desc);
-            if(score>bestScore){bestScore=score;bestMatch=e;}
-          }
+  const process=useCallback(async()=>{setBusy(true);const L=[];let agl=[],ape=[];try{
+    if(f1){L.push('📖 Hebraica...');setLog([...L]);const wb=await readXL(f1);const r=parsePO(wb,'Hebraica');agl.push(...r.gl);ape.push(...r.entries);L.push('  ✅ '+r.gl.length+' POs, '+r.entries.length+' entries');setLog([...L])}
+    if(f2){L.push('📖 Camp...');setLog([...L]);const wb=await readXL(f2);const r=parsePO(wb,'Camp');agl.push(...r.gl);ape.push(...r.entries);L.push('  ✅ '+r.gl.length+' POs, '+r.entries.length+' entries');setLog([...L])}
+    const mp=new Map();agl.forEach(g=>{if(!mp.has(g.po))mp.set(g.po,g)});const dgl=Array.from(mp.values()).sort((a,b)=>parseFloat(a.po.replace('-','.'))-parseFloat(b.po.replace('-','.')));setGlRef(dgl);
+    if(stmt.trim()){L.push('📧 Parsing...');setLog([...L]);const raw=parseStmt(stmt);L.push('  '+raw.length+' txns');L.push('🔄 Matching...');setLog([...L]);
+      const out=raw.map(t=>{const am=ape.filter(e=>Math.abs(e.amount-t.amount)<0.02);let bm=null,bs=0;for(const e of am){if(!isCard(e.vendor))continue;const s=tSim(t.vRaw,e.desc);if(s>bs){bs=s;bm=e}}
+        if(bm&&bs>=0.15){const gr=dgl.find(g=>g.po===bm.po);return{...t,status:'done',po:bm.po,gl:bm.gl,prog:gr?gr.prog:'',poDesc:gr?gr.desc:'',notes:'Auto: '+bm.desc+' ('+bm.src+')'}}
+        const sg=sugGL(t.vRaw,dgl);const g2=dgl.find(g=>g.po===sg.po);return{...t,status:sg.po?'suggested':'unmatched',po:sg.po,gl:sg.gl||'',prog:g2?g2.prog:'',poDesc:g2?g2.desc:'',notes:sg.note}});
+      setTxns(out);L.push('  ✅ Done:'+out.filter(x=>x.status==='done').length+' Sugg:'+out.filter(x=>x.status==='suggested').length+' Need:'+out.filter(x=>x.status==='unmatched').length)}
+    L.push('🎉 Done!');setLog([...L]);setTimeout(()=>setTab('review'),700)}catch(e){L.push('❌ '+e.message);setLog([...L])}setBusy(false)},[f1,f2,stmt,readXL]);
 
-          const MATCH_THRESHOLD = 0.15;
-          if(bestMatch && bestScore >= MATCH_THRESHOLD){
-            const gref=dgl.find(g=>g.po===bestMatch.po);
-            return{...t,status:'done',po:bestMatch.po,gl:bestMatch.gl,
-              prog:gref?gref.prog:'',poDesc:gref?gref.desc:'',
-              notes:'Auto: '+bestMatch.desc+' ('+bestMatch.src+')'};
-          }
+  const upd=useCallback((id,f,v)=>{setTxns(p=>p.map(t=>{if(t.id!==id)return t;const u={...t,[f]:v};if(f==='po'&&v){const r=glRef.find(g=>g.po===v);if(r){u.gl=r.gl;u.prog=r.prog;u.poDesc=r.desc;if(!u.notes)u.notes=r.desc}u.status='assigned'}if(f==='po'&&!v){u.gl='';u.prog='';u.poDesc='';u.status='unmatched'}if(f==='status')u.status=v;return u}))},[glRef]);
+  const accAll=useCallback(()=>{setTxns(p=>p.map(t=>(t.status==='suggested'||t.status==='assigned')?{...t,status:'done'}:t))},[]);
+  const closeM=useCallback(()=>{if(!confirm('Close '+mL(sM,sY)+'?'))return;setClosed(true);const now=new Date().toLocaleString();sSet(sk,{txns,glRef,stmt,closed:true,savedAt:now});setSaved(now);setSess(sList())},[txns,glRef,stmt,sk,sM,sY]);
+  const reopenM=useCallback(()=>{setClosed(false);const now=new Date().toLocaleString();sSet(sk,{txns,glRef,stmt,closed:false,savedAt:now});setSaved(now)},[txns,glRef,stmt,sk]);
+  const deleteM=useCallback(()=>{if(!confirm('DELETE '+mL(sM,sY)+' data?'))return;sDel(sk);setTxns([]);setGlRef([]);setStmt('');setClosed(false);setLog([]);setTab('load');setSaved('');setSess(sList())},[sk,sM,sY]);
 
-          // Only suggest for truly unambiguous vendors
-          const sg=suggestGL(t.vRaw,dgl);
-          const gref2=dgl.find(g=>g.po===sg.po);
-          return{...t,
-            status:sg.po?'suggested':'unmatched',
-            po:sg.po,gl:sg.gl||'',
-            prog:gref2?gref2.prog:'',poDesc:gref2?gref2.desc:'',
-            notes:sg.note};
-        });
+  const vis=useMemo(()=>{let r=[...txns];if(tab==='needsPO')r=r.filter(t=>t.status!=='done');else if(flt==='needsPO')r=r.filter(t=>t.status==='unmatched');else if(flt!=='all')r=r.filter(t=>t.status===flt);if(srch){const s=srch.toLowerCase();r=r.filter(t=>t.vendor.toLowerCase().includes(s)||t.vRaw.toLowerCase().includes(s)||t.po.toLowerCase().includes(s)||t.notes.toLowerCase().includes(s)||t.prog.toLowerCase().includes(s))}r.sort((a,b)=>{const va=sK==='amount'?a.amount:(a[sK]??''),vb=sK==='amount'?b.amount:(b[sK]??'');return va<vb?(sD==='asc'?-1:1):va>vb?(sD==='asc'?1:-1):0});return r},[txns,flt,srch,sK,sD,tab]);
 
-        setTxns(matched);
-        const dn=matched.filter(x=>x.status==='done').length,sg=matched.filter(x=>x.status==='suggested').length,um=matched.filter(x=>x.status==='unmatched').length;
-        L.push('  ✅ Matched:'+dn+' | Suggested:'+sg+' | NeedsPO:'+um);
-      }
-      L.push('');L.push('🎉 Done! Switch to Review tab.');setLog([...L]);
-      setTimeout(()=>setTab('review'),700);
-    }catch(e){L.push('❌ '+e.message);setLog([...L]);}
-    setBusy(false);
-  },[f1,f2,stmt,readXL]);
+  const st=useMemo(()=>{const t=txns.length,d=txns.filter(x=>x.status==='done').length,s=txns.filter(x=>x.status==='suggested').length,u=txns.filter(x=>x.status==='unmatched').length,a=txns.filter(x=>x.status==='assigned').length,ta=txns.reduce((s,t)=>s+t.amount,0);return{t,d,s,u,a,ta}},[txns]);
 
-  const update=useCallback((id,f,v)=>{
-    setTxns(p=>p.map(t=>{
-      if(t.id!==id)return t;
-      const u={...t,[f]:v};
-      if(f==='po'&&v){
-        const r=glRef.find(g=>g.po===v);
-        if(r){u.gl=r.gl;u.prog=r.prog;u.poDesc=r.desc;if(!u.notes)u.notes=r.desc;}
-        u.status='assigned';
-      }
-      if(f==='po'&&!v){u.gl='';u.prog='';u.poDesc='';u.status='unmatched';}
-      if(f==='status')u.status=v;
-      return u;
-    }));
-  },[glRef]);
+  const expXL=useCallback(()=>{const pm=mL(sM,sY);const toE=txns.filter(t=>t.status==='assigned'||t.status==='suggested');const ws=[['GL Name & Program','Description',pm,'','Amount']];for(const t of toE)ws.push([t.poDesc+' - '+t.prog+' ('+t.gl+')',t.vendor,pm,'',t.amount]);const s=XLSX.utils.aoa_to_sheet(ws);s['!cols']=[{wch:40},{wch:35},{wch:18},{wch:5},{wch:12}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,s,'PO Export');XLSX.writeFile(wb,'PO_Export_'+pm.replace(' ','_')+'.xlsx');setTxns(p=>p.map(t=>(t.status==='assigned'||t.status==='suggested')?{...t,status:'done'}:t))},[txns,sM,sY]);
+  const expCSV=useCallback(()=>{const h='Date,Vendor,Full Vendor,Amount,Status,PO#,GL Code,Program,Notes\n';const rows=txns.map(t=>[t.date,'"'+t.vendor+'"','"'+t.vRaw.replace(/"/g,'""')+'"',t.amount.toFixed(2),t.status,t.po,t.gl,'"'+t.prog+'"','"'+t.notes.replace(/"/g,'""')+'"'].join(',')).join('\n');const b=new Blob([h+rows],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='PO_'+mL(sM,sY).replace(' ','_')+'.csv';a.click()},[txns,sM,sY]);
 
-  const acceptAll=useCallback(()=>{setTxns(p=>p.map(t=>(t.status==='suggested'||t.status==='assigned')?{...t,status:'done'}:t))},[]);
+  const doSort=k=>{if(sK===k)setSD(d=>d==='asc'?'desc':'asc');else{setSK(k);setSD('asc')}};
+  const canP=!busy&&!closed&&(f1||f2)&&stmt.trim();const yrs=[];for(let y=2025;y<=2030;y++)yrs.push(y);
 
-  const filtered=useMemo(()=>{
-    let r=[...txns];
-    if(tab==='needsPO')r=r.filter(t=>t.status!=='done');
-    else if(filter==='needsPO')r=r.filter(t=>t.status==='unmatched');
-    else if(filter!=='all')r=r.filter(t=>t.status===filter);
-    if(search){const s=search.toLowerCase();r=r.filter(t=>t.vendor.toLowerCase().includes(s)||t.vRaw.toLowerCase().includes(s)||t.po.toLowerCase().includes(s)||t.notes.toLowerCase().includes(s)||t.prog.toLowerCase().includes(s));}
-    r.sort((a,b)=>{const va=sortK==='amount'?a.amount:(a[sortK]??''),vb=sortK==='amount'?b.amount:(b[sortK]??'');return va<vb?(sortD==='asc'?-1:1):va>vb?(sortD==='asc'?1:-1):0;});
-    return r;
-  },[txns,filter,search,sortK,sortD,tab]);
-
-  const stats=useMemo(()=>{
-    const t=txns.length,d=txns.filter(x=>x.status==='done').length,s=txns.filter(x=>x.status==='suggested').length,
-      u=txns.filter(x=>x.status==='unmatched').length,a=txns.filter(x=>x.status==='assigned').length,
-      ta=txns.reduce((s,t)=>s+t.amount,0);
-    return{t,d,s,u,a,ta,pend:t-d};
-  },[txns]);
-
-  const exportExcel=useCallback(()=>{
-    const prevMonth = getPrevMonth();
-    const toExport = txns.filter(t=>t.status==='assigned'||t.status==='suggested');
-    const wsData = [['GL Name & Program','Description',prevMonth,'','Amount']];
-    for(const t of toExport){
-      const glLabel = t.poDesc + ' - ' + t.prog + ' (' + t.gl + ')';
-      wsData.push([glLabel, t.vendor, prevMonth, '', t.amount]);
-    }
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols']=[{wch:40},{wch:35},{wch:18},{wch:5},{wch:12}];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'PO Export');
-    XLSX.writeFile(wb,'PO_Export_'+prevMonth.replace(' ','_')+'.xlsx');
-    setTxns(p=>p.map(t=>(t.status==='assigned'||t.status==='suggested')?{...t,status:'done'}:t));
-  },[txns]);
-
-  const exportCSV=useCallback(()=>{
-    const h='Date,Vendor,Full Vendor,Amount,Status,PO#,GL Code,Program,Notes\n';
-    const rows=txns.map(t=>[t.date,'"'+t.vendor+'"','"'+t.vRaw.replace(/"/g,'""')+'"',t.amount.toFixed(2),t.status,t.po,t.gl,'"'+t.prog+'"','"'+t.notes.replace(/"/g,'""')+'"'].join(',')).join('\n');
-    const b=new Blob([h+rows],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='PO_Full_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
-  },[txns]);
-
-  const tSort=k=>{if(sortK===k)setSortD(d=>d==='asc'?'desc':'asc');else{setSortK(k);setSortD('asc');}};
-  const canProcess=!busy&&(f1||f2)&&stmt.trim();
-
-  return(
-    <div>
-      <div style={{background:'#111827',borderBottom:'1px solid #1f2937',padding:'14px 24px'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',maxWidth:1440,margin:'0 auto',flexWrap:'wrap',gap:10}}>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <div style={{width:36,height:36,borderRadius:8,background:'linear-gradient(135deg,#3b82f6,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:700,color:'#fff'}}>₪</div>
-            <div>
-              <div style={{fontSize:9,fontWeight:700,letterSpacing:2.5,color:'#6b7280'}}>HEBRAICA · MARJCC</div>
-              <div style={{fontSize:17,fontWeight:700,color:'#f9fafb'}}>PO Reconciliation</div>
-            </div>
-          </div>
-          {stats.t>0&&<div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
-            {[{n:stats.d,l:'DONE',c:'#34d399'},{n:stats.a,l:'ASSGN',c:'#60a5fa'},{n:stats.s,l:'SUGG',c:'#fbbf24'},{n:stats.u,l:'NEEDS',c:'#f87171'}].map(s=>
-              <div key={s.l} style={{textAlign:'center'}}><div style={{fontSize:20,fontWeight:700,color:s.c,lineHeight:1}}>{s.n}</div><div style={{fontSize:8,color:'#6b7280',fontWeight:600,letterSpacing:.8,marginTop:2}}>{s.l}</div></div>
-            )}
-            <div style={{textAlign:'center',borderLeft:'1px solid #374151',paddingLeft:16}}>
-              <div className="mono" style={{fontSize:15,fontWeight:700,color:'#e5e7eb',lineHeight:1}}>${stats.ta.toLocaleString('en-US',{maximumFractionDigits:0})}</div>
-              <div style={{fontSize:8,color:'#6b7280',fontWeight:600,letterSpacing:.8,marginTop:2}}>TOTAL</div>
-            </div>
-          </div>}
-        </div>
-      </div>
-
-      <div style={{background:'#111827',borderBottom:'1px solid #1f2937',padding:'0 24px'}}>
-        <div style={{display:'flex',maxWidth:1440,margin:'0 auto'}}>
-          {[['load','📂 Load Data'],['review','📋 Review'],['needsPO','⚠️ Needs PO'],['export','📊 Export']].map(([k,l])=>
-            <button key={k} onClick={()=>setTab(k)} className="btn"
-              style={{padding:'11px 16px',fontSize:12,fontWeight:600,color:tab===k?'#f9fafb':'#6b7280',background:'transparent',
-                borderBottom:tab===k?'2px solid #3b82f6':'2px solid transparent',borderRadius:0,fontFamily:'inherit'}}>{l}</button>
-          )}
-        </div>
-      </div>
-
-      <div style={{maxWidth:1440,margin:'0 auto',padding:'20px 24px'}}>
-
-        {tab==='load'&&<div style={{display:'grid',gap:16}}>
-          <div className="card">
-            <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}>
-              <span className="step-badge" style={{background:'#3b82f6'}}>STEP 1</span>
-              <span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Upload PO Files</span>
-            </div>
-            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Upload your latest Hebraica and Camp PO Excel files.</p>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-              <UploadBox label="Hebraica 2026.xlsx" icon="📗" file={f1} onFile={setF1}/>
-              <UploadBox label="Camp PO 2026.xlsx" icon="📘" file={f2} onFile={setF2}/>
-            </div>
-          </div>
-          <div className="card">
-            <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}>
-              <span className="step-badge" style={{background:'#8b5cf6'}}>STEP 2</span>
-              <span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Paste Statement</span>
-            </div>
-            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Copy the full text from Lenny's email and paste it below.</p>
-            <textarea value={stmt} onChange={e=>setStmt(e.target.value)} placeholder={"Paste the statement here...\n\nROSEMBERG\nMARLENY\n02/28/2026\n$51.00\nUBER EATS    HTTPS://HELP.UBER. CA"} style={{height:180}}/>
-          </div>
-          <div className="card">
-            <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}>
-              <span className="step-badge" style={{background:'#10b981'}}>STEP 3</span>
-              <span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Process & Match</span>
-            </div>
-            <p style={{fontSize:12,color:'#9ca3af',marginBottom:14}}>Only auto-matches when both amount AND vendor text match a PO entry. Suggests only for unambiguous vendors (Heroku, AWS, airlines).</p>
-            <button className="btn" onClick={process} disabled={!canProcess}
-              style={{padding:'11px 28px',fontSize:13,borderRadius:8,fontFamily:'inherit',
-                background:canProcess?'linear-gradient(135deg,#3b82f6,#8b5cf6)':'#374151',
-                color:canProcess?'#fff':'#6b7280'}}>
-              {busy?'⏳ Processing...':'🚀 Process Everything'}
-            </button>
-            {log.length>0&&<div style={{marginTop:12,padding:10,background:'#0c111b',borderRadius:8,border:'1px solid #1f2937',maxHeight:160,overflow:'auto'}}>
-              {log.map((l,i)=><div key={i} className="mono" style={{fontSize:11,color:l.includes('✅')?'#34d399':l.includes('❌')?'#f87171':l.includes('🎉')?'#fbbf24':'#9ca3af',marginBottom:2}}>{l}</div>)}
-            </div>}
-          </div>
-        </div>}
-
-        {(tab==='review'||tab==='needsPO')&&<div>
-          <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
-            <input type="text" placeholder="🔍 Search..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:200,padding:'6px 10px',fontSize:12}}/>
-            {tab==='review'&&<div style={{display:'flex',gap:2}}>
-              {[['all','All'],['needsPO','Needs PO'],['suggested','Suggested'],['assigned','Assigned'],['done','Done']].map(([k,l])=>
-                <button key={k} className={'btn filter-btn'+(filter===k?' active':'')} onClick={()=>setFilter(k)}>{l}</button>
-              )}
-            </div>}
-            <div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}>
-              {(stats.s+stats.a>0)&&<button className="btn" onClick={acceptAll}
-                style={{padding:'5px 10px',fontSize:10.5,borderRadius:4,background:'#166534',color:'#dcfce7',fontFamily:'inherit'}}>✓ Accept all suggested</button>}
-              <span style={{fontSize:10.5,color:'#6b7280'}}>{filtered.length}/{txns.length}</span>
-            </div>
-          </div>
-
-          <div style={{overflow:'auto',borderRadius:8,border:'1px solid #1f2937',background:'#111827',maxHeight:'calc(100vh - 240px)'}}>
-            <table>
-              <thead><tr>
-                {[['date','Date',78],['vendor','Vendor',170],['amount','Amount',78],['status','Status',85],['po','PO#',180],['gl','GL Code',120],['prog','Program',90],['notes','Notes',140],['_','',55]].map(([k,l,w])=>
-                  <th key={k} onClick={()=>k!=='_'&&tSort(k)} style={{width:w,textAlign:k==='amount'?'right':'left',cursor:k==='_'?'default':'pointer'}}>
-                    {l}{sortK===k?(sortD==='asc'?' ↑':' ↓'):''}
-                  </th>
-                )}
-              </tr></thead>
-              <tbody>
-                {filtered.map(t=>{const sc=SC[t.status]||SC.unmatched;return(
-                  <tr key={t.id} className="rh" style={{borderBottom:'1px solid #0c111b'}}>
-                    <td className="mono" style={{fontSize:10,color:'#9ca3af'}}>{t.date}</td>
-                    <td style={{color:'#e5e7eb',maxWidth:170,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={t.vRaw}>{t.vendor}</td>
-                    <td className="mono" style={{textAlign:'right',fontWeight:600,fontSize:11,color:t.amount<0?'#f87171':'#34d399'}}>
-                      {t.amount<0?'('+Math.abs(t.amount).toFixed(2)+')':'$'+t.amount.toFixed(2)}
-                    </td>
-                    <td><span className="status-badge" style={{background:sc.bg,color:sc.c}}>{sc.l}</span></td>
-                    <td style={{padding:'4px 5px',overflow:'visible',position:'relative'}}>
-                      {t.status==='done'?<span className="mono" style={{fontSize:10.5,color:'#34d399',padding:'0 3px'}}>{t.po}</span>:
-                      <POSelect value={t.po} glRef={glRef} onChange={v=>update(t.id,'po',v)}/>}
-                    </td>
-                    <td className="mono" style={{fontSize:9,color:'#6b7280'}}>{t.gl}</td>
-                    <td style={{fontSize:10,color:'#a78bfa',fontWeight:500}}>{t.prog}</td>
-                    <td style={{padding:'4px 5px'}}>
-                      {t.status==='done'?<span style={{fontSize:10,color:'#9ca3af'}}>{t.notes}</span>:
-                      <input type="text" value={t.notes} onChange={e=>update(t.id,'notes',e.target.value)} placeholder="Note..." style={{fontSize:10.5}}/>}
-                    </td>
-                    <td style={{textAlign:'center',padding:'4px 5px'}}>
-                      {t.status!=='done'&&t.po&&<button className="btn" onClick={()=>update(t.id,'status','done')}
-                        style={{padding:'2px 8px',fontSize:9.5,borderRadius:3,background:'#166534',color:'#dcfce7',fontFamily:'inherit'}}>✓</button>}
-                      {t.status==='done'&&<button className="btn" onClick={()=>update(t.id,'status','assigned')}
-                        style={{padding:'2px 6px',fontSize:8.5,borderRadius:3,background:'#374151',color:'#9ca3af',fontFamily:'inherit'}}>↩</button>}
-                    </td>
-                  </tr>
-                );})}
-                {filtered.length===0&&<tr><td colSpan={9} style={{padding:32,textAlign:'center',color:'#6b7280'}}>
-                  {txns.length===0?'No data loaded. Go to Load Data tab.':'No matches for this filter.'}
-                </td></tr>}
-              </tbody>
-            </table>
-          </div>
-
-          {tab==='needsPO'&&glRef.length>0&&<details style={{marginTop:12}}>
-            <summary>📖 GL Reference ({glRef.length} codes)</summary>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:3,marginTop:6}}>
-              {glRef.map((g,i)=><div key={i} style={{padding:'4px 8px',background:'#111827',borderRadius:4,border:'1px solid #1f2937',fontSize:10,display:'flex',gap:6}}>
-                <span className="mono" style={{color:'#60a5fa',fontWeight:600,minWidth:40}}>{g.po}</span>
-                <span style={{color:'#d1d5db',flex:1}}>{g.desc}</span>
-                <span style={{color:'#a78bfa',fontSize:9,fontWeight:600}}>{g.prog}</span>
-                <span className="mono" style={{color:'#6b7280',fontSize:9}}>{g.gl}</span>
-              </div>)}
-            </div>
-          </details>}
-        </div>}
-
-        {tab==='export'&&<div className="card" style={{padding:40,textAlign:'center'}}>
-          <div style={{fontSize:44,marginBottom:10}}>📊</div>
-          <h3 style={{fontSize:19,fontWeight:700,color:'#f9fafb',marginBottom:6}}>Export Reconciliation</h3>
-          <p style={{fontSize:12,color:'#9ca3af',maxWidth:460,margin:'0 auto 24px'}}>
-            Download the PO Excel with GL Name & Program, Description, Month, and Amount.
-            <br/>Exporting will mark all assigned/suggested as <strong style={{color:'#34d399'}}>DONE</strong>.
-          </p>
-          <div style={{display:'flex',gap:14,justifyContent:'center',marginBottom:24,flexWrap:'wrap'}}>
-            {[['TOTAL',stats.t,'#9ca3af'],['DONE',stats.d,'#34d399'],['READY TO EXPORT',stats.a+stats.s,'#60a5fa'],['STILL NEEDS PO',stats.u,'#f87171']].map(([l,v,c])=>
-              <div key={l} style={{padding:'12px 20px',background:'#0c111b',borderRadius:8,minWidth:100}}>
-                <div style={{fontSize:22,fontWeight:700,color:c}}>{v}</div>
-                <div style={{fontSize:9,color:'#6b7280',marginTop:2,fontWeight:600,letterSpacing:.5}}>{l}</div>
-              </div>
-            )}
-          </div>
-          {stats.u>0&&<p style={{fontSize:11,color:'#fbbf24',marginBottom:16}}>⚠️ {stats.u} transactions still need PO assignment before export</p>}
-          <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
-            <button className="btn" onClick={exportExcel} disabled={stats.a+stats.s===0}
-              style={{padding:'12px 32px',fontSize:14,borderRadius:8,fontFamily:'inherit',
-                background:(stats.a+stats.s>0)?'linear-gradient(135deg,#3b82f6,#8b5cf6)':'#374151',
-                color:(stats.a+stats.s>0)?'#fff':'#6b7280'}}>
-              ⬇ Download PO Excel
-            </button>
-            <button className="btn" onClick={exportCSV} disabled={!stats.t}
-              style={{padding:'12px 24px',fontSize:12,borderRadius:8,fontFamily:'inherit',
-                background:'#374151',color:stats.t?'#e5e7eb':'#6b7280'}}>
-              📋 Full CSV (all data)
-            </button>
-          </div>
-        </div>}
-
+  return(<div>
+    <div className="sbar">
+      <span style={{fontSize:11,fontWeight:700,color:'#6b7280',letterSpacing:1}}>MONTH:</span>
+      <select className="msel" value={sM} onChange={e=>setSM(+e.target.value)}>{MN.map((m,i)=><option key={i} value={i}>{m}</option>)}</select>
+      <select className="msel" value={sY} onChange={e=>setSY(+e.target.value)}>{yrs.map(y=><option key={y} value={y}>{y}</option>)}</select>
+      {closed&&<span style={{fontSize:10,fontWeight:700,color:'#fca5a5',background:'#450a0a',padding:'2px 8px',borderRadius:4}}>🔒 CLOSED</span>}
+      {saved&&<span style={{fontSize:10,color:'#6b7280',display:'flex',alignItems:'center',gap:4}}><span style={{width:6,height:6,borderRadius:'50%',background:'#4ade80',display:'inline-block'}}></span>{saved}</span>}
+      <div style={{marginLeft:'auto',display:'flex',gap:6}}>
+        {closed&&<button className="btn sb" onClick={reopenM} style={{background:'#374151',color:'#e5e7eb'}}>🔓 Reopen</button>}
+        {txns.length>0&&!closed&&<button className="btn sb" onClick={closeM} style={{background:'#7f1d1d',color:'#fca5a5'}}>🔒 Close</button>}
+        {txns.length>0&&<button className="btn sb" onClick={deleteM} style={{background:'#374151',color:'#f87171'}}>🗑</button>}
       </div>
     </div>
-  );
-}
 
-ReactDOM.render(<App/>, document.getElementById('root'));
+    {tab==='load'&&sess.length>0&&<div style={{maxWidth:1440,margin:'8px auto 0',padding:'0 24px'}}><details><summary style={{fontSize:10.5}}>📁 Saved months ({sess.length})</summary><div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:6}}>{sess.map(s=>{const[y,m]=s.key.split('-');const mi=parseInt(m)-1;return(<button key={s.key} className="btn" onClick={()=>{setSM(mi);setSY(parseInt(y))}} style={{padding:'4px 10px',fontSize:10,borderRadius:4,fontFamily:'inherit',background:s.key===sk?'#1e3a5f':'#1f2937',color:s.closed?'#6b7280':'#e5e7eb',border:s.key===sk?'1px solid #3b82f6':'1px solid #374151'}}>{MN[mi]} {y} {s.closed?'✓':''} ({s.n})</button>)})}</div></details></div>}
+
+    <div style={{background:'#111827',borderBottom:'1px solid #1f2937',padding:'14px 24px'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',maxWidth:1440,margin:'0 auto',flexWrap:'wrap',gap:10}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{width:36,height:36,borderRadius:8,background:'linear-gradient(135deg,#3b82f6,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:700,color:'#fff'}}>₪</div>
+          <div><div style={{fontSize:9,fontWeight:700,letterSpacing:2.5,color:'#6b7280'}}>HEBRAICA · MARJCC</div><div style={{fontSize:17,fontWeight:700,color:'#f9fafb'}}>PO Reconciliation — {mL(sM,sY)}</div></div>
+        </div>
+        {st.t>0&&<div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+          {[{n:st.d,l:'DONE',c:'#34d399'},{n:st.a,l:'ASSGN',c:'#60a5fa'},{n:st.s,l:'SUGG',c:'#fbbf24'},{n:st.u,l:'NEEDS',c:'#f87171'}].map(s=><div key={s.l} style={{textAlign:'center'}}><div style={{fontSize:20,fontWeight:700,color:s.c,lineHeight:1}}>{s.n}</div><div style={{fontSize:8,color:'#6b7280',fontWeight:600,letterSpacing:.8,marginTop:2}}>{s.l}</div></div>)}
+          <div style={{textAlign:'center',borderLeft:'1px solid #374151',paddingLeft:16}}><div className="mono" style={{fontSize:15,fontWeight:700,color:'#e5e7eb',lineHeight:1}}>${st.ta.toLocaleString('en-US',{maximumFractionDigits:0})}</div><div style={{fontSize:8,color:'#6b7280',fontWeight:600,letterSpacing:.8,marginTop:2}}>TOTAL</div></div>
+        </div>}
+      </div>
+    </div>
+
+    <div style={{background:'#111827',borderBottom:'1px solid #1f2937',padding:'0 24px'}}><div style={{display:'flex',maxWidth:1440,margin:'0 auto'}}>
+      {[['load','📂 Load'],['review','📋 Review'],['needsPO','⚠️ Needs PO'],['export','📊 Export']].map(([k,l])=><button key={k} onClick={()=>setTab(k)} className="btn" style={{padding:'11px 16px',fontSize:12,fontWeight:600,color:tab===k?'#f9fafb':'#6b7280',background:'transparent',borderBottom:tab===k?'2px solid #3b82f6':'2px solid transparent',borderRadius:0,fontFamily:'inherit'}}>{l}</button>)}
+    </div></div>
+
+    <div style={{maxWidth:1440,margin:'0 auto',padding:'20px 24px'}}>
+
+      {tab==='load'&&<div style={{display:'grid',gap:16}}>
+        {closed&&<div className="card" style={{background:'#450a0a',borderColor:'#7f1d1d'}}><p style={{fontSize:13,color:'#fca5a5'}}>🔒 Month closed. Click Reopen to edit.</p></div>}
+        <div className="card"><div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}><span className="step-badge" style={{background:'#3b82f6'}}>1</span><span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Upload PO Files</span></div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}><UpBox label="Hebraica 2026.xlsx" icon="📗" file={f1} onFile={setF1}/><UpBox label="Camp PO 2026.xlsx" icon="📘" file={f2} onFile={setF2}/></div></div>
+        <div className="card"><div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}><span className="step-badge" style={{background:'#8b5cf6'}}>2</span><span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Paste Statement</span></div><textarea value={stmt} onChange={e=>setStmt(e.target.value)} disabled={closed} placeholder="Paste statement text here..." style={{height:180,opacity:closed?.5:1}}/></div>
+        <div className="card"><div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}><span className="step-badge" style={{background:'#10b981'}}>3</span><span style={{fontSize:14,fontWeight:700,color:'#f9fafb'}}>Process</span></div><p style={{fontSize:11,color:'#9ca3af',marginBottom:12}}>Matches by amount + vendor text. Conservative suggestions only.</p><button className="btn" onClick={process} disabled={!canP} style={{padding:'11px 28px',fontSize:13,borderRadius:8,fontFamily:'inherit',background:canP?'linear-gradient(135deg,#3b82f6,#8b5cf6)':'#374151',color:canP?'#fff':'#6b7280'}}>{busy?'⏳...':'🚀 Process'}</button>
+          {log.length>0&&<div style={{marginTop:12,padding:10,background:'#0c111b',borderRadius:8,border:'1px solid #1f2937',maxHeight:160,overflow:'auto'}}>{log.map((l,i)=><div key={i} className="mono" style={{fontSize:11,color:l.includes('✅')?'#34d399':l.includes('❌')?'#f87171':l.includes('🎉')?'#fbbf24':'#9ca3af',marginBottom:2}}>{l}</div>)}</div>}
+        </div>
+      </div>}
+
+      {(tab==='review'||tab==='needsPO')&&<div>
+        <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
+          <input type="text" placeholder="🔍 Search..." value={srch} onChange={e=>setSrch(e.target.value)} style={{width:200,padding:'6px 10px',fontSize:12}}/>
+          {tab==='review'&&<div style={{display:'flex',gap:2}}>{[['all','All'],['needsPO','Needs PO'],['suggested','Suggested'],['assigned','Assigned'],['done','Done']].map(([k,l])=><button key={k} className={'btn filter-btn'+(flt===k?' active':'')} onClick={()=>setFlt(k)}>{l}</button>)}</div>}
+          <div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}>
+            {!closed&&(st.s+st.a>0)&&<button className="btn" onClick={accAll} style={{padding:'5px 10px',fontSize:10.5,borderRadius:4,background:'#166534',color:'#dcfce7',fontFamily:'inherit'}}>✓ Accept all</button>}
+            <span style={{fontSize:10.5,color:'#6b7280'}}>{vis.length}/{txns.length}</span>
+          </div>
+        </div>
+        <div style={{overflow:'auto',borderRadius:8,border:'1px solid #1f2937',background:'#111827',maxHeight:'calc(100vh - 280px)'}}>
+          <table><thead><tr>{[['date','Date',78],['vendor','Vendor',170],['amount','Amt',78],['status','Status',85],['po','PO#',180],['gl','GL',120],['prog','Program',90],['notes','Notes',140],['_','',55]].map(([k,l,w])=><th key={k} onClick={()=>k!=='_'&&doSort(k)} style={{width:w,textAlign:k==='amount'?'right':'left',cursor:k==='_'?'default':'pointer'}}>{l}{sK===k?(sD==='asc'?' ↑':' ↓'):''}</th>)}</tr></thead>
+          <tbody>{vis.map(t=>{const sc=SC[t.status]||SC.unmatched;return(
+            <tr key={t.id} className="rh" style={{borderBottom:'1px solid #0c111b'}}>
+              <td className="mono" style={{fontSize:10,color:'#9ca3af'}}>{t.date}</td>
+              <td style={{color:'#e5e7eb',maxWidth:170,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={t.vRaw}>{t.vendor}</td>
+              <td className="mono" style={{textAlign:'right',fontWeight:600,fontSize:11,color:t.amount<0?'#f87171':'#34d399'}}>{t.amount<0?'('+Math.abs(t.amount).toFixed(2)+')':'$'+t.amount.toFixed(2)}</td>
+              <td><span className="status-badge" style={{background:sc.bg,color:sc.c}}>{sc.l}</span></td>
+              <td style={{padding:'4px 5px',overflow:'visible',position:'relative'}}>{(t.status==='done'||closed)?<span className="mono" style={{fontSize:10.5,color:'#34d399',padding:'0 3px'}}>{t.po}</span>:<POSel value={t.po} glRef={glRef} onChange={v=>upd(t.id,'po',v)}/>}</td>
+              <td className="mono" style={{fontSize:9,color:'#6b7280'}}>{t.gl}</td>
+              <td style={{fontSize:10,color:'#a78bfa',fontWeight:500}}>{t.prog}</td>
+              <td style={{padding:'4px 5px'}}>{(t.status==='done'||closed)?<span style={{fontSize:10,color:'#9ca3af'}}>{t.notes}</span>:<input type="text" value={t.notes} onChange={e=>upd(t.id,'notes',e.target.value)} placeholder="Note..." style={{fontSize:10.5}}/>}</td>
+              <td style={{textAlign:'center',padding:'4px 5px'}}>{!closed&&t.status!=='done'&&t.po&&<button className="btn" onClick={()=>upd(t.id,'status','done')} style={{padding:'2px 8px',fontSize:9.5,borderRadius:3,background:'#166534',color:'#dcfce7',fontFamily:'inherit'}}>✓</button>}{!closed&&t.status==='done'&&<button className="btn" onClick={()=>upd(t.id,'status','assigned')} style={{padding:'2px 6px',fontSize:8.5,borderRadius:3,background:'#374151',color:'#9ca3af',fontFamily:'inherit'}}>↩</button>}</td>
+            </tr>)})}
+            {vis.length===0&&<tr><td colSpan={9} style={{padding:32,textAlign:'center',color:'#6b7280'}}>{txns.length===0?'No data. Load tab.':'No matches.'}</td></tr>}
+          </tbody></table>
+        </div>
+        {tab==='needsPO'&&glRef.length>0&&<details style={{marginTop:12}}><summary>📖 GL Reference ({glRef.length})</summary><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:3,marginTop:6}}>{glRef.map((g,i)=><div key={i} style={{padding:'4px 8px',background:'#111827',borderRadius:4,border:'1px solid #1f2937',fontSize:10,display:'flex',gap:6}}><span className="mono" style={{color:'#60a5fa',fontWeight:600,minWidth:40}}>{g.po}</span><span style={{color:'#d1d5db',flex:1}}>{g.desc}</span><span style={{color:'#a78bfa',fontSize:9,fontWeight:600}}>{g.prog}</span><span className="mono" style={{color:'#6b7280',fontSize:9}}>{g.gl}</span></div>)}</div></details>}
+      </div>}
+
+      {tab==='export'&&<div className="card" style={{padding:40,textAlign:'center'}}>
+        <div style={{fontSize:44,marginBottom:10}}>📊</div>
+        <h3 style={{fontSize:19,fontWeight:700,color:'#f9fafb',marginBottom:6}}>Export — {mL(sM,sY)}</h3>
+        <div style={{display:'flex',gap:14,justifyContent:'center',marginBottom:24,flexWrap:'wrap'}}>
+          {[['TOTAL',st.t,'#9ca3af'],['DONE',st.d,'#34d399'],['READY',st.a+st.s,'#60a5fa'],['NEEDS PO',st.u,'#f87171']].map(([l,v,c])=><div key={l} style={{padding:'12px 20px',background:'#0c111b',borderRadius:8,minWidth:90}}><div style={{fontSize:22,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:9,color:'#6b7280',marginTop:2,fontWeight:600}}>{l}</div></div>)}
+        </div>
+        {st.u>0&&<p style={{fontSize:11,color:'#fbbf24',marginBottom:16}}>⚠️ {st.u} still need PO</p>}
+        <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
+          <button className="btn" onClick={expXL} disabled={st.a+st.s===0} style={{padding:'12px 32px',fontSize:14,borderRadius:8,fontFamily:'inherit',background:(st.a+st.s>0)?'linear-gradient(135deg,#3b82f6,#8b5cf6)':'#374151',color:(st.a+st.s>0)?'#fff':'#6b7280'}}>⬇ PO Excel</button>
+          <button className="btn" onClick={expCSV} disabled={!st.t} style={{padding:'12px 24px',fontSize:12,borderRadius:8,fontFamily:'inherit',background:'#374151',color:st.t?'#e5e7eb':'#6b7280'}}>📋 Full CSV</button>
+        </div>
+      </div>}
+    </div>
+  </div>);
+}
+ReactDOM.render(<App/>,document.getElementById('root'));
 </script>
 </body>
 </html>
