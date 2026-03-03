@@ -58,9 +58,10 @@ function sDel(k){try{localStorage.removeItem(PFX+k)}catch(e){}}
 function sList(){const r=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(PFX)){const key=k.slice(PFX.length);const d=sGet(key);if(d)r.push({key,closed:!!d.closed,n:d.txns?.length||0})}}}catch(e){}return r.sort((a,b)=>b.key.localeCompare(a.key))}
 
 const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const CARDS=['AMEX','TD VISA'];
 function defM(){const d=new Date();d.setMonth(d.getMonth()-1);return{m:d.getMonth(),y:d.getFullYear()}}
-function mK(m,y){return y+'-'+String(m+1).padStart(2,'0')}
-function mL(m,y){return MN[m]+' '+y}
+function mK(m,y,card){return y+'-'+String(m+1).padStart(2,'0')+'-'+card.replace(' ','_')}
+function mL(m,y,card){return MN[m]+' '+y+' · '+card}
 
 const NOISE=new Set('the and a an of in at to for on by with from or is it its http https www com fl ca ny ma wa ct tx nj mn co il pa amzn bill pay helppay no rec norec nan undefined null 000 0000 00000 0000015 888 855 800 877'.split(' '));
 function tok(s){return(s||'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>1&&!NOISE.has(w.toLowerCase())&&!/^\d{1,3}$/.test(w))}
